@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 import logging
+from io import BytesIO
 
 logging.basicConfig(level=logging.INFO)
 
@@ -64,9 +65,6 @@ def op_shift_range_left(*, input_data: bytes, context: ShiftRangeLeftContext) ->
     return data
 
 def op_write_bytes(*, input_data: bytes, context: WriteContext) -> bytes:
-    """
-    we allow for out-of-bounds write. the gap will be filled with zeros.
-    """
     off   = context.offset
     patch = context.bytes_to_write
 
@@ -87,8 +85,7 @@ def op_read_bytes(*, input_data: bytes, context: ReadContext) -> None:
         raise ValueError(f"Invalid read range: offset ({context.offset}) and size ({context.size}) out of bounds.")
     
     read_data = input_data[context.offset:context.offset + context.size]
-    print(read_data.hex())
-    return input_data
+    return read_data
 
 def op_verify_bytes(*, input_data: bytes, context: VerifyContext) -> None:
     if context.offset < 0 or context.offset + len(context.reference) > len(input_data):
@@ -112,9 +109,7 @@ def main_shift_range_left(args: argparse.Namespace) -> bytes:
     )
 
 def main_write(args: argparse.Namespace) -> bytes:
-    offset = int(args.offset, 16)
-    bytes_to_write = bytes.fromhex(args.bytes)
-    context = WriteContext(offset=offset, bytes_to_write=bytes_to_write)
+    context = WriteContext(offset=args.offset, bytes_to_write=bytes.fromhex(args.bytes))
     logging.info(f"executing {context.to_csv()}")
     input_data = Path(args.input_file).read_bytes()
     return op_write_bytes(
@@ -123,21 +118,23 @@ def main_write(args: argparse.Namespace) -> bytes:
     )
 
 def main_read(args: argparse.Namespace) -> None:
-    offset = int(args.offset, 16)
-    size = args.size
-    context = ReadContext(offset=offset, size=size)
+    context = ReadContext(offset=args.offset, size=args.size)
     logging.info(f"executing {context.to_csv()}")
     input_data = Path(args.input_file).read_bytes()
-    op_read_bytes(
+    res = op_read_bytes(
         input_data=input_data,
         context=context
     )
+    if (bpl := args.fmt_bytes_per_line) == 0:
+        print(res.hex())
+    else:
+        assert bpl > 0
+        stream = BytesIO(res)
+        while (data := stream.read(bpl)):
+            print(data.hex())
 
 def main_verify(args: argparse.Namespace) -> None:
-    offset = int(args.offset, 16)
-    size = args.size
-    reference = bytes.fromhex(args.reference)
-    context = VerifyContext(offset=offset, size=size, reference=reference)
+    context = VerifyContext(offset=args.offset, reference=bytes.fromhex(args.reference))
     logging.info(f"executing {context.to_csv()}")
     input_data = Path(args.input_file).read_bytes()
     op_verify_bytes(
@@ -198,7 +195,7 @@ if __name__ == "__main__":
     # Subparser for WRITE
     parser_write = subparsers.add_parser(Op.write.value, help="Write bytes to a specific offset.")
     parser_write.add_argument("input_file", help="Path to the input file.")
-    parser_write.add_argument("offset", help="Offset in the file to write the bytes (in hex).")
+    parser_write.add_argument("offset", type=lambda _val: int(_val, 16), help="Offset in the file to write the bytes (in hex).")
     parser_write.add_argument("bytes", help="Bytes to write, as a hexadecimal string.")
     parser_write.add_argument("output_file", help="Path to the output file.")
     parser_write.set_defaults(func=main_write)
@@ -206,14 +203,15 @@ if __name__ == "__main__":
     # Subparser for READ
     parser_read = subparsers.add_parser(Op.read.value, help="Read bytes from a specific offset.")
     parser_read.add_argument("input_file", help="Path to the input file.")
-    parser_read.add_argument("offset", help="Offset in the file to read from (in hex).")
-    parser_read.add_argument("size", type=int, help="Number of bytes to read.")
+    parser_read.add_argument("offset", type=lambda _val: int(_val, 16), help="Offset in the file to read from (in hex).")
+    parser_read.add_argument("size", type=lambda _val: int(_val, 16), help="Number of bytes to read.")
+    parser_read.add_argument("-f", "--fmt-bytes-per-line", type=int, default=0)
     parser_read.set_defaults(func=main_read)
 
     # Subparser for VERIFY
     parser_verify = subparsers.add_parser(Op.verify.value, help="Verify bytes at a specific offset.")
     parser_verify.add_argument("input_file", help="Path to the input file.")
-    parser_verify.add_argument("offset", help="Offset in the file to verify from (in hex).")
+    parser_verify.add_argument("offset", type=lambda _val: int(_val, 16), help="Offset in the file to verify from (in hex).")
     parser_verify.add_argument("size", type=int, help="Number of bytes to verify.")
     parser_verify.add_argument("reference", help="Reference bytes to compare, as a hexadecimal string.")
     parser_verify.set_defaults(func=main_verify)
