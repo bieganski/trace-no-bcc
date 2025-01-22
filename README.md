@@ -62,3 +62,5 @@ How can you get detailed information of function-file offset mapping? Either use
 # Distribution
 * we are bound by `libbpf`'s license, so it's `LGPL-2.1 OR BSD-2-Clause`.
 
+# Complementary tools
+* [lib_get_pub_funcs.sh](./lib_get_pub_funcs.sh) - prints all function names that given shared library exposes. sample use case: `sudo ./ftrace.py path/to/lib.so $(./lib_get_pub_funcs.sh path/to/lib.so)`
