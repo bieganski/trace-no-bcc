@@ -166,7 +166,7 @@ def patch_bpf_map(
         raise ValueError(f"patch_bpf_map: BPF_MAP_UPDATE_ELEM syscall failed")
     
 
-def bpf__create_skeleton(bpf_elf_bytes: bytes) -> "ctypes._Pointer[libbpf.bpf_object_skeleton]":
+def bpf__create_skeleton(bpf_elf_bytes: bytes, name: str) -> "ctypes._Pointer[libbpf.bpf_object_skeleton]":
 
     assert isinstance(bpf_elf_bytes, bytes)
 
@@ -178,7 +178,7 @@ def bpf__create_skeleton(bpf_elf_bytes: bytes) -> "ctypes._Pointer[libbpf.bpf_ob
     s = s_ptr.contents
 
     s.sz = ctypes.sizeof(libbpf.bpf_object_skeleton)
-    s.name = libbpf.String(b"uprobe_bpf")
+    s.name = libbpf.String(f"uprobe_bpf__{name}".encode())
     s.obj = ctypes.cast(o_ptr, ctypes.POINTER(o_ptr.__class__))
     
 
@@ -379,7 +379,10 @@ def preprocess_bpf_elf(elf_bytes: bytes) -> bytes:
 
     return elf_bytes
 
-def main(lib: Path, symbol_or_offset: str, btf: Optional[Path], pid: str, no_retprobe: bool, bpf_elf: Path):
+def load_bpf_elf(lib: Path, symbol_or_offset: str, btf: Optional[Path], pid: str, no_retprobe: bool, bpf_elf: Path, symbol_name: Optional[str] = None):
+    if symbol_name is None:
+        symbol_name = symbol_or_offset
+
     if btf:
         if not btf.exists():
             raise ValueError(f"Custom BTF path does not exist! {btf}")
@@ -392,7 +395,7 @@ def main(lib: Path, symbol_or_offset: str, btf: Optional[Path], pid: str, no_ret
     elf_bytes = preprocess_bpf_elf(bpf_elf.read_bytes())
 
     # equivalent of auto-generated ".skel.h" file.
-    s_ptr = bpf__create_skeleton(bpf_elf_bytes=elf_bytes)
+    s_ptr = bpf__create_skeleton(bpf_elf_bytes=elf_bytes, name=symbol_name)
 
     err = libbpf.bpf_object__open_skeleton(s_ptr, open_opts_ptr)
     if err != 0:
@@ -404,7 +407,7 @@ def main(lib: Path, symbol_or_offset: str, btf: Optional[Path], pid: str, no_ret
     
     obj_ptr = s_ptr.contents.obj.contents
     
-    for section_name, value in zip([".data.symbol_name", ".data.library_path"], [symbol_or_offset, str(lib)]):
+    for section_name, value in zip([".data.symbol_name", ".data.library_path"], [symbol_name, str(lib)]):
         patch_bpf_map(
             obj_ptr=obj_ptr,
             section_name=section_name,
@@ -474,12 +477,31 @@ def main(lib: Path, symbol_or_offset: str, btf: Optional[Path], pid: str, no_ret
     
     ring_buffer = libbpf.ring_buffer__new(rb_map_fd, handle_event, None, None)
 
-    logging.info("Successfully loaded BPF programs! Start ringbuf polling..")
+    return ring_buffer
 
+def main(lib: Path, symbol_or_offset: list[str], btf: Optional[Path], pid: str, no_retprobe: bool, bpf_elf: Path, timeout_ms: int):
+    ring_buffers = []
+    for i, symbol in enumerate(symbol_or_offset):
+
+        # user might want to "rename" symbol or offset, via '0xabc:my_symbol_name' construct.
+        tokens = symbol.split(":")
+        symbol = tokens[0]
+
+        user_defined_alias = symbol if len(tokens) == 1 else tokens[-1]
+
+        rb = load_bpf_elf(lib=lib, symbol_or_offset=symbol, btf=btf, pid=pid, no_retprobe=no_retprobe, bpf_elf=bpf_elf, symbol_name=user_defined_alias)
+        ring_buffers.append(rb)
+        logging.info(f"Successfully loaded {i}th BPF program ({symbol})")
+
+    del tokens, symbol, user_defined_alias, symbol_or_offset
+
+    logging.info(f"Start polling..")
     while True:
-        err = libbpf.ring_buffer__poll(ring_buffer, 100)
-        if err < 0:
-            print("libbpf.ring_buffer__poll BAD")
+        for rb in ring_buffers:
+            err = libbpf.ring_buffer__poll(rb, timeout_ms)
+            if err < 0:
+                print("libbpf.ring_buffer__poll BAD")
+
 
 if __name__ == "__main__":
     # clean handling of Ctrl-C, as ringbuf polling messes with it.
@@ -492,9 +514,22 @@ if __name__ == "__main__":
     from argparse import ArgumentParser
     parser = ArgumentParser(usage="libbpy python bindings loader")
     parser.add_argument("lib", type=Path, help="path to the library to set userspace breakpoint at.")
-    parser.add_argument("symbol_or_offset", help="symbol name or hex file offset to set breakpoint at (e.g. 'malloc' or '0x2068').")
+    parser.add_argument("symbol_or_offset", nargs="+", help="symbol name or hex file offset to set breakpoint at (e.g. 'malloc' or '0x2068' or '0x2068:user-defined-name').")
     parser.add_argument("-b", "--btf", type=Path, help="custom BTF path. if not specified, libbpf will seek for 'vmlinux' in default locations (e.g. sysfs)")
+    parser.add_argument("-t", "--timeout_ms", type=int, default=1, help="ringbuf polling timeout. 'good' value depends on number of symbols traced.")
     parser.add_argument("-e", "--bpf-elf", type=Path, default=Path("uprobe.bpf.o"))
     parser.add_argument("-p", "--pid", default="all", help="PID to be traced. Either an int, or 'self', or 'all'. Defaults to 'all'")
     parser.add_argument("-nr", "--no-retprobe", action="store_true")
-    main(**vars(parser.parse_args()))
+    parser.add_argument("-f", "--adjust-fileno", action="store_true")
+
+    args = vars(parser.parse_args())
+
+    if (args.pop("adjust_fileno")):
+        # we need to keep lots of map/prog file descriptors alive, when many symbols are involved.
+        max_no_file_opened = 10_000
+        Path("/proc/sys/fs/file-max").write_text(f"{max_no_file_opened}\n")
+        import resource; resource.setrlimit(resource.RLIMIT_NOFILE, (max_no_file_opened, max_no_file_opened))
+    
+    # TODO: edge case that will *not* work, to be fixed:
+    # symbol_or_offset = [x, x]  - will not work as there is only a single instance of 'last_entry_event_dict', and it's key is not adjusted
+    main(**args)
