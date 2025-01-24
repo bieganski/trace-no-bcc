@@ -3,7 +3,7 @@
 from pathlib import Path
 import sys
 import ctypes
-from typing import Type, Optional
+from typing import Type, Optional, Callable
 import subprocess
 import platform
 from enum import Enum
@@ -309,6 +309,7 @@ def get_regs_of_interest(arch: CPU_Arch, is_ret: bool) -> list[str]:
     else:
         assert False
 
+handler_show_timestamp = False
 
 @ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(None), ctypes.c_size_t)
 def handle_event(ctx, data, data_sz):
@@ -319,6 +320,8 @@ def handle_event(ctx, data, data_sz):
 
     in order to (only) minimize the risk of data incoherency, first thing that we do in the handler is to memcpy @data content.
     """
+
+    global handler_show_timestamp
 
     assert data_sz == ctypes.sizeof(Event)
 
@@ -335,7 +338,8 @@ def handle_event(ctx, data, data_sz):
 
     pt_regs = getattr(event.pt_regs_union, system_get_cpu_arch().value)
 
-    msg_prefix = f"[{event.pid},{event.tid}][{lib_basename}:{symbol_name}]"
+    msg_prefix =  f"[{event.timestamp}]" if handler_show_timestamp else ""
+    msg_prefix += f"[{event.pid},{event.tid}][{lib_basename}:{symbol_name}]"
 
     if event.is_ret:
         
@@ -379,7 +383,7 @@ def preprocess_bpf_elf(elf_bytes: bytes) -> bytes:
 
     return elf_bytes
 
-def load_bpf_elf(lib: Path, symbol_or_offset: str, btf: Optional[Path], pid: str, no_retprobe: bool, bpf_elf: Path, symbol_name: Optional[str] = None):
+def load_bpf_elf(lib: Path, symbol_or_offset: str, btf: Optional[Path], pid: str, no_retprobe: bool, bpf_elf: Path, rb_event_handler: Callable, symbol_name: Optional[str] = None):
     if symbol_name is None:
         symbol_name = symbol_or_offset
 
@@ -475,11 +479,15 @@ def load_bpf_elf(lib: Path, symbol_or_offset: str, btf: Optional[Path], pid: str
     if rb_map_fd <= 0:
         raise ValueError(f"patch_bpf_map: lookup failed for map 'rb'")
     
-    ring_buffer = libbpf.ring_buffer__new(rb_map_fd, handle_event, None, None)
+    ring_buffer = libbpf.ring_buffer__new(rb_map_fd, rb_event_handler, None, None)
 
     return ring_buffer
 
-def main(lib: Path, symbol_or_offset: list[str], btf: Optional[Path], pid: str, no_retprobe: bool, bpf_elf: Path, timeout_ms: int):
+def main(lib: Path, symbol_or_offset: list[str], btf: Optional[Path], pid: str, no_retprobe: bool, bpf_elf: Path, timeout_ms: int, timestamp: bool):
+    global handler_show_timestamp
+    if timestamp:
+        handler_show_timestamp = True
+
     ring_buffers = []
     for i, symbol in enumerate(symbol_or_offset):
 
@@ -489,7 +497,7 @@ def main(lib: Path, symbol_or_offset: list[str], btf: Optional[Path], pid: str, 
 
         user_defined_alias = symbol if len(tokens) == 1 else tokens[-1]
 
-        rb = load_bpf_elf(lib=lib, symbol_or_offset=symbol, btf=btf, pid=pid, no_retprobe=no_retprobe, bpf_elf=bpf_elf, symbol_name=user_defined_alias)
+        rb = load_bpf_elf(lib=lib, symbol_or_offset=symbol, btf=btf, pid=pid, no_retprobe=no_retprobe, bpf_elf=bpf_elf, symbol_name=user_defined_alias, rb_event_handler=handle_event)
         ring_buffers.append(rb)
         logging.info(f"Successfully loaded {i}th BPF program ({symbol})")
 
@@ -517,6 +525,7 @@ if __name__ == "__main__":
     parser.add_argument("symbol_or_offset", nargs="+", help="symbol name or hex file offset to set breakpoint at (e.g. 'malloc' or '0x2068' or '0x2068:user-defined-name').")
     parser.add_argument("-b", "--btf", type=Path, help="custom BTF path. if not specified, libbpf will seek for 'vmlinux' in default locations (e.g. sysfs)")
     parser.add_argument("-t", "--timeout_ms", type=int, default=1, help="ringbuf polling timeout. 'good' value depends on number of symbols traced.")
+    parser.add_argument("-ts", "--timestamp", action="store_true")
     parser.add_argument("-e", "--bpf-elf", type=Path, default=Path("uprobe.bpf.o"))
     parser.add_argument("-p", "--pid", default="all", help="PID to be traced. Either an int, or 'self', or 'all'. Defaults to 'all'")
     parser.add_argument("-nr", "--no-retprobe", action="store_true")
