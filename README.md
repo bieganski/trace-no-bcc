@@ -53,7 +53,9 @@ How can you get detailed information of function-file offset mapping? Either use
 # Runtime non-requirements :)
 * No `requirements.txt` - only Python standard libraries
 * No BCC, no libbcc
-* No LLVM, no Clang
+* No LLVM, no Clang*
+
+`*` - actually optionally it can be used, see [Blob paranoid](#blob-paranoid) section.
 
 # Supported CPU architectures
 * x86_64
@@ -64,3 +66,7 @@ How can you get detailed information of function-file offset mapping? Either use
 
 # Complementary tools
 * [lib_get_pub_funcs.sh](./lib_get_pub_funcs.sh) - prints all function names that given shared library exposes. sample use case: `sudo ./ftrace.py path/to/lib.so $(./lib_get_pub_funcs.sh path/to/lib.so)`
+
+# Blob paranoid?
+
+Under the hood `sudo ftrace.py` loads `uprobe.bpf.o` into your kernel. For full transparency, use [build_bpf.sh](./build_bpf.sh) in order to build `uprobe.bpf.o` from [uprobe.bpf.c](./uprobe.bpf.c). Requires `clang` and `llvm` packages.
