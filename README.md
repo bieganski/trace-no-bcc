@@ -1,7 +1,7 @@
 # Use cases
 
 * debugging without recompilation
-* low-overhead exeuction profiling
+* low-overhead execution profiling
 
 # Example
 
@@ -9,7 +9,7 @@
 git clone https://github.com/bieganski/trace-no-bcc && cd trace-no-bcc
 
 # Trace all PIDs calling function `malloc` from standard C library
-sudo ./ftrace.py /lib/x86_64-linux-gnu/libc.so.6 malloc
+sudo ./ftrace.py user /lib/x86_64-linux-gnu/libc.so.6 malloc
 ```
 
 ```
@@ -24,13 +24,27 @@ sudo ./ftrace.py /lib/x86_64-linux-gnu/libc.so.6 malloc
 ...
 ```
 
+
+```bash
+# Trace all invocations of kernel function __x64_sys_mount (see /proc/kallsyms)
+ sudo ./ftrace.py kernel __x64_sys_mount
+```
+
+```
+[1715601,1715601][<kernel>:__x64_sys_mount] FIRST ENTRY di=0xffffb851470dff58, si=0xa5, dx=0x0, cx=0x0, r8=0x0, r9=0x0, r10=0x0
+[1715601,1715601][<kernel>:__x64_sys_mount] RET (ax=0xfffffffffffffffe) exec_time_ns: 0.0000153 seconds
+[1715604,1715604][<kernel>:__x64_sys_mount] FIRST ENTRY di=0xffffb85147117f58, si=0xa5, dx=0x0, cx=0x0, r8=0x0, r9=0x0, r10=0x0
+[1715604,1715604][<kernel>:__x64_sys_mount] RET (ax=0xfffffffffffffffe) exec_time_ns: 0.0000164 seconds
+```
+
 # Features
 
-* userspace code tracing, either by symbol name or file offset
-* kernel code tracing (WIP, will land soon)
-* tracing either shared library code or executable directly
-* filtering userspace tracee by PID or tracing all PIDs system-wide
+* **userspace code tracing** (either by symbol name or file offset)
+* **kernel code tracing** (either by symbol name or kernel virtual memory address)
+* [userspace] tracing either shared library code or executable directly
+* [userspace] filtering userspace tracee by PID or tracing all PIDs system-wide
 * multi-arch, easily extensible
+
 
 
 # But.. What if the code that I need to trace is not a global symbol, or is in the middle of a function?
@@ -65,7 +79,7 @@ How can you get detailed information of function-file offset mapping? Either use
 * we are bound by `libbpf`'s license, so it's `LGPL-2.1 OR BSD-2-Clause`.
 
 # Complementary tools
-* [lib_get_pub_funcs.sh](./lib_get_pub_funcs.sh) - prints all function names that given shared library exposes. sample use case: `sudo ./ftrace.py path/to/lib.so $(./lib_get_pub_funcs.sh path/to/lib.so)`
+* [lib_get_pub_funcs.sh](./lib_get_pub_funcs.sh) - prints all function names that given shared library exposes. sample use case: `sudo ./ftrace.py user path/to/lib.so $(./lib_get_pub_funcs.sh path/to/lib.so)`
 
 # Blob paranoid?
 
