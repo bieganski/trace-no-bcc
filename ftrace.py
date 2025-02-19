@@ -9,11 +9,46 @@ import platform
 from enum import Enum
 import signal
 import logging
+from dataclasses import dataclass
+import _ctypes
 
 from elfmanip import find_section_or_raise
 from blobmanip import op_write_bytes, WriteContext
 
 logging.basicConfig(level=logging.INFO)
+
+def ctypesgen_String_nullptr_workaround() -> "libbpf.String":
+    """
+    TODO: 'ctypesgen' tries to be smart and defines 'class String', that is not convenient for us at all.
+    Otherwise we could just use 'ctypes.POINTER()', and ctypes would convert it to nullptr automatically.
+    """
+    res = libbpf.String()
+    res.raw = ctypes.POINTER(ctypes.c_char)()
+    return res
+
+@dataclass
+class ProbeLoc:
+    symbol_or_offset: str
+
+    @property
+    def file_offset(self):
+        try:
+            return int(self.symbol_or_offset, 16)
+        except:
+            return 0
+
+@dataclass
+class UprobeLoc(ProbeLoc):
+    lib: Path
+    libbpf_pid: int
+
+    @property
+    def func_name(self):
+        if self.file_offset == 0:
+            return libbpf.String(bytes(self.symbol_or_offset, "ascii"))
+        return ctypesgen_String_nullptr_workaround()
+
+KprobeLoc = ProbeLoc
 
 libc = ctypes.CDLL(None)
 syscall = libc.syscall
@@ -383,7 +418,67 @@ def preprocess_bpf_elf(elf_bytes: bytes) -> bytes:
 
     return elf_bytes
 
-def load_bpf_elf(lib: Path, symbol_or_offset: str, btf: Optional[Path], pid: str, no_retprobe: bool, bpf_elf: Path, rb_event_handler: Callable, symbol_name: Optional[str] = None):
+def sloppy_guess_bpf_prog_is_retprobe(prog_ptr: libbpf.struct_bpf_program) -> bool:
+    return "ret_" in prog_ptr.name.data.decode("ascii")
+
+def load_probe(
+        loc: KprobeLoc | UprobeLoc,
+        num_progs: int,
+        programs_ptr: "_ctypes._Pointer[libbpf.struct_bpf_program]",
+        no_retprobe: bool) -> "list[_ctypes._Pointer[libbpf.struct_bpf_link]]":
+
+    if (is_uprobe := isinstance(loc, UprobeLoc)):
+        opts =libbpf.struct_bpf_uprobe_opts(
+            sz=ctypes.sizeof(libbpf.struct_bpf_uprobe_opts),
+            retprobe=False,
+            func_name=loc.func_name,
+        )
+    else:
+        opts = libbpf.struct_bpf_kprobe_opts(
+            sz=ctypes.sizeof(libbpf.struct_bpf_kprobe_opts),
+            retprobe=False,
+            attach_mode=libbpf.PROBE_ATTACH_MODE_DEFAULT,
+            offset=loc.file_offset,
+        )
+
+    links = []
+    for i in range(num_progs):
+        if sloppy_guess_bpf_prog_is_retprobe(programs_ptr[i]):
+            opts.retprobe = True
+            logging.info(f"prog[{i}] is a retprobe")
+
+            if no_retprobe:
+                logging.info("skipping retprobe application (on user request)")
+                continue
+        else:
+            opts.retprobe = False
+            logging.info(f"prog[{i}] is not a retprobe")
+
+        if is_uprobe:
+            bpf_link = libbpf.bpf_program__attach_uprobe_opts(
+                programs_ptr[i],
+                loc.libbpf_pid,
+                libbpf.String(bytes(str(loc.lib), "ascii")),
+                loc.file_offset, # func_offset (not necessarily will be used)
+                ctypes.byref(opts),
+            )
+        else:
+            bpf_link = libbpf.bpf_program__attach_kprobe_opts(
+                programs_ptr[i],
+                libbpf.String(bytes(str(loc.symbol_or_offset), "ascii")) if loc.file_offset == 0 else None,
+                ctypes.byref(opts),
+            )
+
+        if not bpf_link:
+            raise ValueError("bpf_program__attach_uprobe_opts returned NULL!")
+
+        links.append(bpf_link)
+    return links
+
+
+def load_bpf_elf(loc: KprobeLoc | UprobeLoc, btf: Optional[Path], no_retprobe: bool, bpf_elf: Path, rb_event_handler: Callable, symbol_name: Optional[str] = None):
+    symbol_or_offset = loc.symbol_or_offset
+    
     if symbol_name is None:
         symbol_name = symbol_or_offset
 
@@ -410,71 +505,22 @@ def load_bpf_elf(lib: Path, symbol_or_offset: str, btf: Optional[Path], pid: str
         raise RuntimeError("libbpf.bpf_object__load_skeleton failed")
     
     obj_ptr = s_ptr.contents.obj.contents
-    
-    for section_name, value in zip([".data.symbol_name", ".data.library_path"], [symbol_name, str(lib)]):
+    library_name = str(loc.lib) if isinstance(loc, UprobeLoc) else "<kernel>"
+    for section_name, value in zip([".data.symbol_name", ".data.library_path"], [symbol_name, library_name]):
         patch_bpf_map(
             obj_ptr=obj_ptr,
             section_name=section_name,
             new_value=bytes(value, "ascii") + b'\x00',
         )
 
-    def ctypesgen_String_nullptr_workaround() -> libbpf.String:
-        """
-        TODO: 'ctypesgen' tries to be smart and defines 'class String', that is not convenient for us at all.
-        Otherwise we could just use 'ctypes.POINTER()', and ctypes would convert it to nullptr automatically.
-        """
-        res = libbpf.String()
-        res.raw = ctypes.POINTER(ctypes.c_char)()
-        return res
-
-    try:
-        uprobe_file_offset = int(symbol_or_offset, 16)
-        func_name = ctypesgen_String_nullptr_workaround()
-    except:
-        uprobe_file_offset = 0
-        func_name = libbpf.String(bytes(symbol_or_offset, "ascii"))
-
-    uprobe_opts =libbpf.struct_bpf_uprobe_opts(
-        sz=ctypes.sizeof(libbpf.struct_bpf_uprobe_opts),
-        retprobe=False,
-        func_name=func_name,
-    )
-
-    if pid == "self":
-        pid_int = pid_t(0)
-    elif pid == "all":
-        pid_int = pid_t(-1)
-    else:
-        pid_int = pid_t(int(pid))
-
     programs_ptr = obj_ptr.contents.programs
-    assert (num_progs := obj_ptr.contents.nr_programs) == 2
-    
+
     # NOTE: be careful here, as 'nr_programs' is also incremented for non-inlined static functions.
     # https://mailweb.openeuler.org/hyperkitty/list/kernel@openeuler.org/message/I7OJDEIGUDF42JEBJ5BDAZRNCLYIZCV5/
-    for i in range(num_progs):
-        if "ret_" in programs_ptr[i].name.data.decode("ascii"):
-            uprobe_opts.retprobe = True
-            logging.info(f"prog[{i}] is uretprobe")
+    assert (num_progs := obj_ptr.contents.nr_programs) == 2
 
-            if no_retprobe:
-                logging.info("skipping uretprobe application (on user request)")
-                continue
-        else:
-            uprobe_opts.retprobe = False
-            logging.info(f"prog[{i}] is not uretprobe")
-        
-        bpf_link = libbpf.bpf_program__attach_uprobe_opts(
-            programs_ptr[i],
-            pid_int,                                               # pid
-            libbpf.String(bytes(str(lib), "ascii")),               # binary_path
-            uprobe_file_offset,                                    # func_offset (not necessarily will be used)
-            ctypes.byref(uprobe_opts),                             # opts
-        )
+    load_probe(loc=loc, num_progs=num_progs, programs_ptr=programs_ptr, no_retprobe=no_retprobe)
 
-        if not bpf_link:
-            raise ValueError("bpf_program__attach_uprobe_opts returned NULL!")
-    
     rb_map_fd : int = libbpf.bpf_object__find_map_fd_by_name(obj_ptr, libbpf.String(b"rb"))
     if rb_map_fd <= 0:
         raise ValueError(f"patch_bpf_map: lookup failed for map 'rb'")
@@ -483,25 +529,25 @@ def load_bpf_elf(lib: Path, symbol_or_offset: str, btf: Optional[Path], pid: str
 
     return ring_buffer
 
-def main(lib: Path, symbol_or_offset: list[str], btf: Optional[Path], pid: str, no_retprobe: bool, bpf_elf: Path, timeout_ms: int, timestamp: bool):
+def main(locs: list[KprobeLoc | UprobeLoc], btf: Optional[Path], no_retprobe: bool, bpf_elf: Path, timeout_ms: int, timestamp: bool):
     global handler_show_timestamp
     if timestamp:
         handler_show_timestamp = True
 
     ring_buffers = []
-    for i, symbol in enumerate(symbol_or_offset):
+    for i, loc in enumerate(locs):
 
         # user might want to "rename" symbol or offset, via '0xabc:my_symbol_name' construct.
-        tokens = symbol.split(":")
+        tokens = loc.symbol_or_offset.split(":")
         symbol = tokens[0]
 
         user_defined_alias = symbol if len(tokens) == 1 else tokens[-1]
 
-        rb = load_bpf_elf(lib=lib, symbol_or_offset=symbol, btf=btf, pid=pid, no_retprobe=no_retprobe, bpf_elf=bpf_elf, symbol_name=user_defined_alias, rb_event_handler=handle_event)
+        rb = load_bpf_elf(loc=loc, btf=btf, no_retprobe=no_retprobe, bpf_elf=bpf_elf, symbol_name=user_defined_alias, rb_event_handler=handle_event)
         ring_buffers.append(rb)
         logging.info(f"Successfully loaded {i}th BPF program ({symbol})")
 
-    del tokens, symbol, user_defined_alias, symbol_or_offset
+    del tokens, user_defined_alias, symbol
 
     logging.info(f"Start polling..")
     while True:
@@ -510,6 +556,15 @@ def main(lib: Path, symbol_or_offset: list[str], btf: Optional[Path], pid: str, 
             if err < 0:
                 print("libbpf.ring_buffer__poll BAD")
 
+
+def argparse_pid_to_libbpf_pid(pid: str) -> int:
+    if pid == "self":
+        pid_int = pid_t(0)
+    elif pid == "all":
+        pid_int = pid_t(-1)
+    else:
+        pid_int = pid_t(int(pid))
+    return pid_int
 
 if __name__ == "__main__":
     # clean handling of Ctrl-C, as ringbuf polling messes with it.
@@ -520,16 +575,22 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, sig_handler)
 
     from argparse import ArgumentParser
-    parser = ArgumentParser(usage="libbpy python bindings loader")
-    parser.add_argument("lib", type=Path, help="path to the library to set userspace breakpoint at.")
-    parser.add_argument("symbol_or_offset", nargs="+", help="symbol name or hex file offset to set breakpoint at (e.g. 'malloc' or '0x2068' or '0x2068:user-defined-name').")
-    parser.add_argument("-b", "--btf", type=Path, help="custom BTF path. if not specified, libbpf will seek for 'vmlinux' in default locations (e.g. sysfs)")
-    parser.add_argument("-t", "--timeout_ms", type=int, default=1, help="ringbuf polling timeout. 'good' value depends on number of symbols traced.")
-    parser.add_argument("-ts", "--timestamp", action="store_true")
-    parser.add_argument("-e", "--bpf-elf", type=Path, default=Path("uprobe.bpf.o"))
-    parser.add_argument("-p", "--pid", default="all", help="PID to be traced. Either an int, or 'self', or 'all'. Defaults to 'all'")
-    parser.add_argument("-nr", "--no-retprobe", action="store_true")
-    parser.add_argument("-f", "--adjust-fileno", action="store_true")
+    parser = ArgumentParser(usage="libbpf python bindings loader")
+
+    subparsers = parser.add_subparsers(dest="kprobe_or_uprobe", required=True)
+    kprobe_parser, uprobe_parser = subparsers.add_parser('kernel'), subparsers.add_parser('user')
+
+    uprobe_parser.add_argument("lib", type=Path, help="path to the library to set userspace breakpoint at.")
+    uprobe_parser.add_argument("-p", "--pid", default="all", help="PID to be traced. Either an int, or 'self', or 'all'. Defaults to 'all'")
+    
+    for subparser in (kprobe_parser, uprobe_parser):
+        subparser.add_argument("symbol_or_offset", nargs="+", help="symbol name or hex file offset to set breakpoint at (e.g. 'malloc' or '0x2068' or '0x2068:user-defined-name').")
+        subparser.add_argument("-b", "--btf", type=Path, help="custom BTF path. if not specified, libbpf will seek for 'vmlinux' in default locations (e.g. sysfs)")
+        subparser.add_argument("-t", "--timeout_ms", type=int, default=1, help="ringbuf polling timeout. 'good' value depends on number of symbols traced.")
+        subparser.add_argument("-ts", "--timestamp", action="store_true")
+        subparser.add_argument("-e", "--bpf-elf", type=Path, default=Path("uprobe.bpf.o"))
+        subparser.add_argument("-nr", "--no-retprobe", action="store_true")
+        subparser.add_argument("-f", "--adjust-fileno", action="store_true", help="might be needed when tracing hundreds or more symbols at once.")
 
     args = vars(parser.parse_args())
 
@@ -539,6 +600,18 @@ if __name__ == "__main__":
         Path("/proc/sys/fs/file-max").write_text(f"{max_no_file_opened}\n")
         import resource; resource.setrlimit(resource.RLIMIT_NOFILE, (max_no_file_opened, max_no_file_opened))
     
+    is_uprobe = (args.pop("kprobe_or_uprobe") == "user")
+    symbol_or_offset = args.pop("symbol_or_offset")
+
+    if is_uprobe:
+        lib, pid = args.pop("lib"), args.pop("pid")
+        locs = [ UprobeLoc(symbol_or_offset=x, lib=lib, libbpf_pid=argparse_pid_to_libbpf_pid(pid)) for x in symbol_or_offset ]
+        del lib, pid
+    else:
+        locs = [ KprobeLoc(symbol_or_offset=x) for x in symbol_or_offset ]
+
+    del is_uprobe, symbol_or_offset
+
     # TODO: edge case that will *not* work, to be fixed:
     # symbol_or_offset = [x, x]  - will not work as there is only a single instance of 'last_entry_event_dict', and it's key is not adjusted
-    main(**args)
+    main(**args, locs=locs)
