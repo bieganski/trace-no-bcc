@@ -48,7 +48,18 @@ class UprobeLoc(ProbeLoc):
             return libbpf.String(bytes(self.symbol_or_offset, "ascii"))
         return ctypesgen_String_nullptr_workaround()
 
-KprobeLoc = ProbeLoc
+@dataclass
+class KprobeLoc(ProbeLoc):
+    pass
+
+def get_attach_type(probe: ProbeLoc):
+    assert isinstance(probe, ProbeLoc)
+    if isinstance(probe, KprobeLoc):
+        return bpf.BPF_TRACE_KPROBE_MULTI
+    elif isinstance(probe, UprobeLoc):
+        return bpf.BPF_TRACE_UPROBE_MULTI
+    else:
+        assert False
 
 libc = ctypes.CDLL(None)
 syscall = libc.syscall
@@ -338,9 +349,9 @@ def fmt_regs(reg_names: list[str], pt_regs: ctypes.Structure) -> str:
 
 def get_regs_of_interest(arch: CPU_Arch, is_ret: bool) -> list[str]:
     if arch == CPU_Arch.x86_64:
-        return ["ax"] if is_ret else ["di", "si", "dx", "cx", "r8", "r9", "r10"]
+        return ["ax", "ip"] if is_ret else ["di", "si", "dx", "cx", "r8", "r9", "r10"]
     elif arch == CPU_Arch.riscv64:
-        return ["a0"] if is_ret else ["ra"] + [f"a{i}" for i in range(6)]
+        return ["a0", "epc"] if is_ret else ["ra"] + [f"a{i}" for i in range(6)]
     else:
         assert False
 
@@ -379,7 +390,9 @@ def handle_event(ctx, data, data_sz):
     if event.is_ret:
         
         if not (prev_entry_event := last_entry_event_dict.get(hash)):
-            assert False # uretprobe is set on uprobe hit from the same process, see 'handler_chain' in kernel/events/uprobes.c
+            print("BAD")
+            return 0
+            # assert False # uretprobe is set on uprobe hit from the same process, see 'handler_chain' in kernel/events/uprobes.c
 
         exec_time_ns = event.timestamp - prev_entry_event.timestamp
         assert exec_time_ns > 0
@@ -428,21 +441,58 @@ def load_probe(
         no_retprobe: bool) -> "list[_ctypes._Pointer[libbpf.struct_bpf_link]]":
 
     if (is_uprobe := isinstance(loc, UprobeLoc)):
-        opts =libbpf.struct_bpf_uprobe_opts(
-            sz=ctypes.sizeof(libbpf.struct_bpf_uprobe_opts),
+        syms = (ctypes.c_char_p * 1)()
+        syms[0] = ctypes.c_char_p(loc.symbol_or_offset.encode("ascii"))
+        assert loc.file_offset == 0 , "TODO XXX"
+        opts =libbpf.struct_bpf_uprobe_multi_opts(
+            sz=ctypes.sizeof(libbpf.struct_bpf_uprobe_multi_opts),
+            syms=ctypes.cast(syms, ctypes.POINTER(ctypes.POINTER(ctypes.c_char))),
+            offsets=None,   # TODO
             retprobe=False,
-            func_name=loc.func_name,
+            cnt=1,          # TODO
         )
     else:
-        opts = libbpf.struct_bpf_kprobe_opts(
-            sz=ctypes.sizeof(libbpf.struct_bpf_kprobe_opts),
+        # opts = libbpf.struct_bpf_kprobe_opts(
+        #     sz=ctypes.sizeof(libbpf.struct_bpf_kprobe_opts),
+        #     retprobe=False,
+        #     attach_mode=libbpf.PROBE_ATTACH_MODE_DEFAULT,
+        #     offset=loc.file_offset,
+        # )
+# struct bpf_kprobe_multi_opts {
+# 	/* size of this struct, for forward/backward compatibility */
+# 	size_t sz;
+# 	/* array of function symbols to attach */
+# 	const char **syms;
+# 	/* array of function addresses to attach */
+# 	const unsigned long *addrs;
+# 	/* array of user-provided values fetchable through bpf_get_attach_cookie */
+# 	const __u64 *cookies;
+# 	/* number of elements in syms/addrs/cookies arrays */
+# 	size_t cnt;
+# 	/* create return kprobes */
+# 	bool retprobe;
+# 	/* create session kprobes */
+# 	bool session;
+# 	/* enforce unique match */
+# 	bool unique_match;
+# 	size_t :0;
+# };
+        syms = (ctypes.c_char_p * 1)()
+        syms[0] = ctypes.c_char_p(loc.symbol_or_offset.encode("ascii"))
+        assert loc.file_offset == 0 , "TODO XXX"
+        opts = libbpf.bpf_kprobe_multi_opts(
+            sz=ctypes.sizeof(libbpf.bpf_kprobe_multi_opts),
+            syms=ctypes.cast(syms, ctypes.POINTER(ctypes.POINTER(ctypes.c_char))),
+            cnt=1,
             retprobe=False,
-            attach_mode=libbpf.PROBE_ATTACH_MODE_DEFAULT,
-            offset=loc.file_offset,
         )
 
     links = []
     for i in range(num_progs):
+
+        # programs_ptr[i].expected_attach_type = True
+
+
         if sloppy_guess_bpf_prog_is_retprobe(programs_ptr[i]):
             opts.retprobe = True
             logging.info(f"prog[{i}] is a retprobe")
@@ -455,22 +505,32 @@ def load_probe(
             logging.info(f"prog[{i}] is not a retprobe")
 
         if is_uprobe:
-            bpf_link = libbpf.bpf_program__attach_uprobe_opts(
+            bpf_link = libbpf.bpf_program__attach_uprobe_multi(
                 programs_ptr[i],
                 loc.libbpf_pid,
                 libbpf.String(bytes(str(loc.lib), "ascii")),
-                loc.file_offset, # func_offset (not necessarily will be used)
+                None, # func pattern - NULL means to use opts (with non-zero cnt)
                 ctypes.byref(opts),
             )
         else:
-            bpf_link = libbpf.bpf_program__attach_kprobe_opts(
+            bpf_link = libbpf.bpf_program__attach_kprobe_multi_opts(
                 programs_ptr[i],
-                libbpf.String(bytes(str(loc.symbol_or_offset), "ascii")) if loc.file_offset == 0 else None,
+                None, # pattern
                 ctypes.byref(opts),
             )
 
+            #         const struct bpf_program *prog,
+			# 	      const char *pattern,
+			# 	      const struct bpf_kprobe_multi_opts *opts)
+            
+            # bpf_link = libbpf.bpf_program__attach_kprobe_opts(
+            #     programs_ptr[i],
+            #     libbpf.String(bytes(str(loc.symbol_or_offset), "ascii")) if loc.file_offset == 0 else None,
+            #     ctypes.byref(opts),
+            # )
+
         if not bpf_link:
-            raise ValueError("bpf_program__attach_uprobe_opts returned NULL!")
+            raise ValueError("bpf_program__attach_{u|k}probe_multi returned NULL!")
 
         links.append(bpf_link)
     return links
@@ -500,6 +560,13 @@ def load_bpf_elf(loc: KprobeLoc | UprobeLoc, btf: Optional[Path], no_retprobe: b
     if err != 0:
         raise RuntimeError("libbpf.bpf_object__open_skeleton failed")
 
+    obj_ptr = s_ptr.contents.obj.contents
+    programs_ptr = obj_ptr.contents.programs
+
+    patched_attach_type = get_attach_type(loc)
+    for i in range(2):
+        programs_ptr[i].expected_attach_type = patched_attach_type
+
     err = libbpf.bpf_object__load_skeleton(s_ptr)
     if err != 0:
         raise RuntimeError("libbpf.bpf_object__load_skeleton failed")
@@ -518,6 +585,9 @@ def load_bpf_elf(loc: KprobeLoc | UprobeLoc, btf: Optional[Path], no_retprobe: b
     # NOTE: be careful here, as 'nr_programs' is also incremented for non-inlined static functions.
     # https://mailweb.openeuler.org/hyperkitty/list/kernel@openeuler.org/message/I7OJDEIGUDF42JEBJ5BDAZRNCLYIZCV5/
     assert (num_progs := obj_ptr.contents.nr_programs) == 2
+
+    for i in range(num_progs):
+        programs_ptr[i].expected_attach_type = bpf.BPF_TRACE_KPROBE_MULTI
 
     load_probe(loc=loc, num_progs=num_progs, programs_ptr=programs_ptr, no_retprobe=no_retprobe)
 
