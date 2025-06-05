@@ -357,6 +357,7 @@ def get_regs_of_interest(arch: CPU_Arch, is_ret: bool) -> list[str]:
 
 handler_show_timestamp = False
 limit_handled_events = None
+handler_minimal = False
 
 @ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(None), ctypes.c_size_t)
 def handle_event(ctx, data, data_sz):
@@ -368,12 +369,16 @@ def handle_event(ctx, data, data_sz):
     in order to (only) minimize the risk of data incoherency, first thing that we do in the handler is to memcpy @data content.
     """
 
-    global handler_show_timestamp, limit_handled_events
+    global handler_show_timestamp, limit_handled_events, handler_minimal
 
     if isinstance(limit_handled_events, int):
         if limit_handled_events == 0:
             os.kill(os.getpid(), 9)
         limit_handled_events -= 1
+
+    if handler_minimal:
+        print("BPF event hit")
+        return 0
 
     assert data_sz <= ctypes.sizeof(Event)
 
@@ -546,14 +551,19 @@ def load_bpf_elf(loc: KprobeLoc | UprobeLoc, btf: Optional[Path], no_retprobe: b
 
     return ring_buffer
 
-def main(locs: list[KprobeLoc | UprobeLoc], btf: Optional[Path], no_retprobe: bool, bpf_elf: Path, timeout_ms: int, timestamp: bool, limit: int):
-    global handler_show_timestamp, limit_handled_events
+def main(locs: list[KprobeLoc | UprobeLoc], btf: Optional[Path], no_retprobe: bool, bpf_elf: Path, timeout_ms: int, timestamp: bool, limit: int, minimal: bool):
+    global handler_show_timestamp, limit_handled_events, handler_minimal
 
     if timestamp:
         handler_show_timestamp = True
 
     if limit:
         limit_handled_events = limit
+    
+    handler_minimal = minimal
+
+    del minimal, limit, timestamp
+
 
     ring_buffers = []
     for i, loc in enumerate(locs):
@@ -612,6 +622,7 @@ if __name__ == "__main__":
         subparser.add_argument("-ts", "--timestamp", action="store_true")
         subparser.add_argument("-e", "--bpf-elf", type=Path, default=Path("uprobe.bpf.o"))
         subparser.add_argument("-nr", "--no-retprobe", action="store_true")
+        subparser.add_argument("-m", "--minimal", action="store_true", help="skip event processing, invoke minimal handler, that just prints a line to stdout.")
         subparser.add_argument("-f", "--adjust-fileno", action="store_true", help="might be needed when tracing hundreds or more symbols at once.")
 
     args = vars(parser.parse_args())
