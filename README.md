@@ -68,14 +68,12 @@ How can you get detailed information of function-file offset mapping? Either use
 * No `requirements.txt` - only Python standard libraries
 * No BCC, no libbcc
 * No LLVM, no Clang*
-* No `CO-RE` nor `vmlinux` required from kernel
 
 `*` - actually optionally it can be used, see [Blob paranoid](#blob-paranoid) section.
 
 # Supported CPU architectures
-* x86_64 (64 bit)
-* armv7l (32 bit)
-* RISC-V (64 bit)
+* x86_64
+* RISC-V 64bit
 
 # Distribution
 * we are bound by `libbpf`'s license, so it's `LGPL-2.1 OR BSD-2-Clause`.
