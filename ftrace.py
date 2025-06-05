@@ -370,9 +370,10 @@ def handle_event(ctx, data, data_sz):
 
     global handler_show_timestamp, limit_handled_events
 
-    if limit_handled_events == 0:
-        os.kill(os.getpid(), 9)
-    limit_handled_events -= 1
+    if isinstance(limit_handled_events, int):
+        if limit_handled_events == 0:
+            os.kill(os.getpid(), 9)
+        limit_handled_events -= 1
 
     assert data_sz <= ctypes.sizeof(Event)
 
@@ -547,9 +548,12 @@ def load_bpf_elf(loc: KprobeLoc | UprobeLoc, btf: Optional[Path], no_retprobe: b
 
 def main(locs: list[KprobeLoc | UprobeLoc], btf: Optional[Path], no_retprobe: bool, bpf_elf: Path, timeout_ms: int, timestamp: bool, limit: int):
     global handler_show_timestamp, limit_handled_events
+
     if timestamp:
         handler_show_timestamp = True
-    limit_handled_events = limit
+
+    if limit:
+        limit_handled_events = limit
 
     ring_buffers = []
     for i, loc in enumerate(locs):
