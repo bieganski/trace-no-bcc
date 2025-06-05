@@ -57,6 +57,7 @@ syscall = libc.syscall
 class CPU_Arch(Enum):
     x86_64 = "x86_64"
     riscv64 = "riscv64"
+    armv7l = "armv7l"
 
 def system_get_cpu_arch() -> CPU_Arch:
     machine = platform.machine()
@@ -65,6 +66,7 @@ def system_get_cpu_arch() -> CPU_Arch:
 bpf_syscall_nr = {
     CPU_Arch.x86_64: 321,
     CPU_Arch.riscv64: 280,
+    CPU_Arch.armv7l: 386,
 }
 
 pid_t = ctypes.c_int
@@ -302,10 +304,16 @@ class struct_pt_regs_x86_64(ctypes.Structure):
         ('ss', ctypes.c_ulong),
     ]
 
+class struct_pt_regs_armv7l(ctypes.Union):
+    _fields_ = [
+        ("uregs", ctypes.c_uint32 * 18),
+    ]
+
 class union_pt_regs(ctypes.Union):
     _fields_ = [
         ("x86_64", struct_pt_regs_x86_64),
         ("riscv64", struct_pt_regs_riscv64),
+        ("armv7l", struct_pt_regs_armv7l),
     ]
 
 # Define the struct event in Python
@@ -342,6 +350,8 @@ def get_regs_of_interest(arch: CPU_Arch, is_ret: bool) -> list[str]:
         return ["ax"] if is_ret else ["di", "si", "dx", "cx", "r8", "r9", "r10"]
     elif arch == CPU_Arch.riscv64:
         return ["a0"] if is_ret else ["ra"] + [f"a{i}" for i in range(7)]
+    elif arch == CPU_Arch.armv7l:
+        return []
     else:
         assert False
 
@@ -364,7 +374,7 @@ def handle_event(ctx, data, data_sz):
         os.kill(os.getpid(), 9)
     limit_handled_events -= 1
 
-    assert data_sz == ctypes.sizeof(Event)
+    assert data_sz <= ctypes.sizeof(Event)
 
     event_ptr = ctypes.cast(data, ctypes.POINTER(Event))
     event = Event()
@@ -414,11 +424,11 @@ def preprocess_bpf_elf(elf_bytes: bytes) -> bytes:
     native_arch = system_get_cpu_arch()
 
     for arch in CPU_Arch:
-        arch_section = find_section_or_raise(elf_content=elf_bytes, sec_name=f".data.arch_is_{arch.value}")
+        arch_section = find_section_or_raise(elf_content=elf_bytes, sec_name=f".rodata.arch_is_{arch.value}")
         assert arch_section.content_length == 4
 
         val = bytes(ctypes.c_uint32(1 if arch == native_arch else 0))
-        
+
         op = WriteContext(offset=arch_section.content_file_offset, bytes_to_write=val)
         elf_bytes = op_write_bytes(context=op, input_data=elf_bytes)
 
