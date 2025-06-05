@@ -130,6 +130,10 @@ struct pt_regs_riscv64 {
 	long unsigned int orig_a0;
 };
 
+struct pt_regs_armv7l {
+	uint32_t uregs[18];
+};
+
 #define SEC(name) \
 	_Pragma("GCC diagnostic push")					    \
 	_Pragma("GCC diagnostic ignored \"-Wignored-attributes\"")	    \
@@ -144,10 +148,10 @@ struct pt_regs_riscv64 {
 SEC(".data.symbol_name") static char symbol_name[64] = "MOCK_SYMBOL";
 SEC(".data.library_path") static char library_path[128] = "MOCK_LIBRARY";
 
-// NOTE: setting all arch to 0 here and setting only one at 1 at load time would be easier,
-// but we need to prevent dead code elimination by clang now.
-SEC(".data.arch_is_x86_64") static const uint32_t arch_is_x86_64 = 1;
-SEC(".data.arch_is_riscv64") static const uint32_t arch_is_riscv64 = 1;
+// * use volatile to avoid being optimized-out by clang.
+SEC(".rodata.arch_is_x86_64") static volatile const uint32_t arch_is_x86_64 = 1;
+SEC(".rodata.arch_is_riscv64") static volatile const uint32_t arch_is_riscv64 = 1;
+SEC(".rodata.arch_is_armv7l") static volatile const uint32_t arch_is_armv7l = 1;
 
 char LICENSE[] SEC("license") = "Dual BSD/GPL";
 
@@ -168,6 +172,7 @@ struct event {
 	union {
 		struct pt_regs_x86_64  regs_x86_64;
 		struct pt_regs_riscv64 regs_riscv64;
+		struct pt_regs_armv7l  regs_armv7l;
 	};
 };
 
@@ -180,16 +185,25 @@ __always_inline static void copy_pid_tid(struct event* e) {
 }
 
 __always_inline static void copy_regs(void* regs, struct event* e) {
+	int copied = 0;
 
+	if (arch_is_armv7l) {
+		e->regs_armv7l = *(struct pt_regs_armv7l*) regs;
+		copied = 1;
+	} 
+	
+	if (arch_is_riscv64) {
+		e->regs_riscv64 = *(struct pt_regs_riscv64*) regs;
+		copied = 1;
+	} 
+	
 	if (arch_is_x86_64) {
-		struct pt_regs_x86_64* alias = (struct pt_regs_x86_64*) regs;
-		e->regs_x86_64 = *alias;
-	}
-	else if (arch_is_riscv64) {
-		struct pt_regs_riscv64* alias = (struct pt_regs_riscv64*) regs;
-		e->regs_riscv64 = *alias;
-	} else {
-		bpf_printk("BAD: no arch specified!");
+		e->regs_x86_64 = *(struct pt_regs_x86_64*) regs;
+		copied = 1;
+	} 
+	
+	if (!copied) {
+		bpf_printk("runtime arch detection failed: No register copy performed!");
 	}
 }
 

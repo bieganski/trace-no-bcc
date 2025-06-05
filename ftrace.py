@@ -57,6 +57,7 @@ syscall = libc.syscall
 class CPU_Arch(Enum):
     x86_64 = "x86_64"
     riscv64 = "riscv64"
+    armv7l = "armv7l"
 
 def system_get_cpu_arch() -> CPU_Arch:
     machine = platform.machine()
@@ -65,6 +66,7 @@ def system_get_cpu_arch() -> CPU_Arch:
 bpf_syscall_nr = {
     CPU_Arch.x86_64: 321,
     CPU_Arch.riscv64: 280,
+    CPU_Arch.armv7l: 386,
 }
 
 pid_t = ctypes.c_int
@@ -302,10 +304,16 @@ class struct_pt_regs_x86_64(ctypes.Structure):
         ('ss', ctypes.c_ulong),
     ]
 
+class struct_pt_regs_armv7l(ctypes.Union):
+    _fields_ = [
+        ("uregs", ctypes.c_uint32 * 18),
+    ]
+
 class union_pt_regs(ctypes.Union):
     _fields_ = [
         ("x86_64", struct_pt_regs_x86_64),
         ("riscv64", struct_pt_regs_riscv64),
+        ("armv7l", struct_pt_regs_armv7l),
     ]
 
 # Define the struct event in Python
@@ -342,11 +350,14 @@ def get_regs_of_interest(arch: CPU_Arch, is_ret: bool) -> list[str]:
         return ["ax"] if is_ret else ["di", "si", "dx", "cx", "r8", "r9", "r10"]
     elif arch == CPU_Arch.riscv64:
         return ["a0"] if is_ret else ["ra"] + [f"a{i}" for i in range(7)]
+    elif arch == CPU_Arch.armv7l:
+        return [] # TODO
     else:
         assert False
 
 handler_show_timestamp = False
 limit_handled_events = None
+handler_minimal = False
 
 @ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(None), ctypes.c_size_t)
 def handle_event(ctx, data, data_sz):
@@ -358,14 +369,18 @@ def handle_event(ctx, data, data_sz):
     in order to (only) minimize the risk of data incoherency, first thing that we do in the handler is to memcpy @data content.
     """
 
-    global handler_show_timestamp, limit_handled_events
+    global handler_show_timestamp, limit_handled_events, handler_minimal
 
     if isinstance(limit_handled_events, int):
         if limit_handled_events == 0:
             os.kill(os.getpid(), 9)
         limit_handled_events -= 1
 
-    assert data_sz == ctypes.sizeof(Event)
+    if handler_minimal:
+        print("BPF event hit")
+        return 0
+
+    assert data_sz <= ctypes.sizeof(Event)
 
     event_ptr = ctypes.cast(data, ctypes.POINTER(Event))
     event = Event()
@@ -415,11 +430,11 @@ def preprocess_bpf_elf(elf_bytes: bytes) -> bytes:
     native_arch = system_get_cpu_arch()
 
     for arch in CPU_Arch:
-        arch_section = find_section_or_raise(elf_content=elf_bytes, sec_name=f".data.arch_is_{arch.value}")
+        arch_section = find_section_or_raise(elf_content=elf_bytes, sec_name=f".rodata.arch_is_{arch.value}")
         assert arch_section.content_length == 4
 
         val = bytes(ctypes.c_uint32(1 if arch == native_arch else 0))
-        
+
         op = WriteContext(offset=arch_section.content_file_offset, bytes_to_write=val)
         elf_bytes = op_write_bytes(context=op, input_data=elf_bytes)
 
@@ -536,13 +551,19 @@ def load_bpf_elf(loc: KprobeLoc | UprobeLoc, btf: Optional[Path], no_retprobe: b
 
     return ring_buffer
 
-def main(locs: list[KprobeLoc | UprobeLoc], btf: Optional[Path], no_retprobe: bool, bpf_elf: Path, timeout_ms: int, timestamp: bool, limit: int):
-    global handler_show_timestamp, limit_handled_events
+def main(locs: list[KprobeLoc | UprobeLoc], btf: Optional[Path], no_retprobe: bool, bpf_elf: Path, timeout_ms: int, timestamp: bool, limit: int, minimal: bool):
+    global handler_show_timestamp, limit_handled_events, handler_minimal
 
     if timestamp:
         handler_show_timestamp = True
+
     if limit:
         limit_handled_events = limit
+    
+    handler_minimal = minimal
+
+    del minimal, limit, timestamp
+
 
     ring_buffers = []
     for i, loc in enumerate(locs):
@@ -601,6 +622,7 @@ if __name__ == "__main__":
         subparser.add_argument("-ts", "--timestamp", action="store_true")
         subparser.add_argument("-e", "--bpf-elf", type=Path, default=Path("uprobe.bpf.o"))
         subparser.add_argument("-nr", "--no-retprobe", action="store_true")
+        subparser.add_argument("-m", "--minimal", action="store_true", help="skip event processing, invoke minimal handler, that just prints a line to stdout.")
         subparser.add_argument("-f", "--adjust-fileno", action="store_true", help="might be needed when tracing hundreds or more symbols at once.")
 
     args = vars(parser.parse_args())
