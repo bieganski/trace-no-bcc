@@ -351,7 +351,7 @@ def get_regs_of_interest(arch: CPU_Arch, is_ret: bool) -> list[str]:
     elif arch == CPU_Arch.riscv64:
         return ["a0"] if is_ret else ["ra"] + [f"a{i}" for i in range(7)]
     elif arch == CPU_Arch.armv7l:
-        return []
+        return [] # TODO
     else:
         assert False
 

@@ -68,6 +68,7 @@ How can you get detailed information of function-file offset mapping? Either use
 * No `requirements.txt` - only Python standard libraries
 * No BCC, no libbcc
 * No LLVM, no Clang*
+* No `CO-RE` nor `vmlinux` required from kernel
 
 `*` - actually optionally it can be used, see [Blob paranoid](#blob-paranoid) section.
 

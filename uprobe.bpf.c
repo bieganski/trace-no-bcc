@@ -148,8 +148,7 @@ struct pt_regs_armv7l {
 SEC(".data.symbol_name") static char symbol_name[64] = "MOCK_SYMBOL";
 SEC(".data.library_path") static char library_path[128] = "MOCK_LIBRARY";
 
-// NOTE: setting all arch to 0 here and setting only one at 1 at load time would be easier,
-// but we need to prevent dead code elimination by clang now.
+// * use volatile to avoid being optimized-out by clang.
 SEC(".rodata.arch_is_x86_64") static volatile const uint32_t arch_is_x86_64 = 1;
 SEC(".rodata.arch_is_riscv64") static volatile const uint32_t arch_is_riscv64 = 1;
 SEC(".rodata.arch_is_armv7l") static volatile const uint32_t arch_is_armv7l = 1;
