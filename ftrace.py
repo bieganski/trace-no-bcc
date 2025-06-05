@@ -10,6 +10,7 @@ from enum import Enum
 import signal
 import logging
 from dataclasses import dataclass
+import os
 import _ctypes
 
 from elfmanip import find_section_or_raise
@@ -345,6 +346,7 @@ def get_regs_of_interest(arch: CPU_Arch, is_ret: bool) -> list[str]:
         assert False
 
 handler_show_timestamp = False
+limit_handled_events = None
 
 @ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(None), ctypes.c_size_t)
 def handle_event(ctx, data, data_sz):
@@ -356,7 +358,12 @@ def handle_event(ctx, data, data_sz):
     in order to (only) minimize the risk of data incoherency, first thing that we do in the handler is to memcpy @data content.
     """
 
-    global handler_show_timestamp
+    global handler_show_timestamp, limit_handled_events
+
+    if isinstance(limit_handled_events, int):
+        if limit_handled_events == 0:
+            os.kill(os.getpid(), 9)
+        limit_handled_events -= 1
 
     assert data_sz == ctypes.sizeof(Event)
 
@@ -529,10 +536,13 @@ def load_bpf_elf(loc: KprobeLoc | UprobeLoc, btf: Optional[Path], no_retprobe: b
 
     return ring_buffer
 
-def main(locs: list[KprobeLoc | UprobeLoc], btf: Optional[Path], no_retprobe: bool, bpf_elf: Path, timeout_ms: int, timestamp: bool):
-    global handler_show_timestamp
+def main(locs: list[KprobeLoc | UprobeLoc], btf: Optional[Path], no_retprobe: bool, bpf_elf: Path, timeout_ms: int, timestamp: bool, limit: int):
+    global handler_show_timestamp, limit_handled_events
+
     if timestamp:
         handler_show_timestamp = True
+    if limit:
+        limit_handled_events = limit
 
     ring_buffers = []
     for i, loc in enumerate(locs):
@@ -587,6 +597,7 @@ if __name__ == "__main__":
         subparser.add_argument("symbol_or_offset", nargs="+", help="symbol name or hex file offset to set breakpoint at (e.g. 'malloc' or '0x2068' or '0x2068:user-defined-name').")
         subparser.add_argument("-b", "--btf", type=Path, help="custom BTF path. if not specified, libbpf will seek for 'vmlinux' in default locations (e.g. sysfs)")
         subparser.add_argument("-t", "--timeout_ms", type=int, default=1, help="ringbuf polling timeout. 'good' value depends on number of symbols traced.")
+        subparser.add_argument("-l", "--limit", type=int, default=0, help="exit after handling N events. Default 0 means infinite.")
         subparser.add_argument("-ts", "--timestamp", action="store_true")
         subparser.add_argument("-e", "--bpf-elf", type=Path, default=Path("uprobe.bpf.o"))
         subparser.add_argument("-nr", "--no-retprobe", action="store_true")
