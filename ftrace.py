@@ -3,7 +3,7 @@
 from pathlib import Path
 import sys
 import ctypes
-from typing import Type, Optional, Callable
+from typing import Type, Optional, Callable, Any
 import subprocess
 import platform
 from enum import Enum
@@ -330,9 +330,13 @@ class Event(ctypes.Structure):
         ("pt_regs_union", union_pt_regs)
     ]
 
+@dataclass
+class EventPreviousContext:
+    event: Event
+    counter : int
 
 # key: (library, symbol, pid, tid)
-last_entry_event_dict = dict()
+last_entry_event_dict : dict[Any, EventPreviousContext]= dict()
 
 def fmt_ns(timedelta_ns: int) -> str:
     return f"{(timedelta_ns / 1_000_000_000):.7f} seconds"
@@ -403,26 +407,23 @@ def handle_event(ctx, data, data_sz):
         if not (prev_entry_event := last_entry_event_dict.get(hash)):
             assert False # uretprobe is set on uprobe hit from the same process, see 'handler_chain' in kernel/events/uprobes.c
 
-        exec_time_ns = event.timestamp - prev_entry_event.timestamp
+        exec_time_ns = event.timestamp - prev_entry_event.event.timestamp
         assert exec_time_ns > 0
 
         print(f"{msg_prefix} RET ({fmt_regs(reg_names=get_regs_of_interest(arch=arch, is_ret=True), pt_regs=pt_regs)}) exec_time_ns: {fmt_ns(exec_time_ns)}")
     else:
-
-        # fetch previous event and update with the new one
         prev_entry_event = last_entry_event_dict.get(hash)
-        last_entry_event_dict[hash] = event
-
-        first_hit_of_hash = (not prev_entry_event)
+        if (first_hit_of_hash := (not prev_entry_event)):
+            msg_infix = f"FIRST ENTRY"
+            counter = 1
+        else:
+            reentry_delta_ns = event.timestamp - prev_entry_event.event.timestamp
+            counter = prev_entry_event.counter + 1
+            msg_infix = f"REENTRY({counter}) after {fmt_ns(reentry_delta_ns)}"
+        
+        last_entry_event_dict[hash] = EventPreviousContext(event=event, counter=counter)
 
         regs_str = fmt_regs(reg_names=get_regs_of_interest(arch=arch, is_ret=False), pt_regs=pt_regs)
-
-        if not first_hit_of_hash:
-            reentry_delta_ns = event.timestamp - prev_entry_event.timestamp
-            msg_infix = f"REENTRY after {fmt_ns(reentry_delta_ns)}"
-        else:
-            msg_infix = f"FIRST ENTRY"
-
         print(f"{msg_prefix} {msg_infix} {regs_str}")
     return 0
 
