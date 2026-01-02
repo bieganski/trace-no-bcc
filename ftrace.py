@@ -536,7 +536,7 @@ def load_probe(
             bpf_link = libbpf.bpf_program__attach_uprobe_multi(
                 programs_ptr[i],
                 loc.libbpf_pid,
-                libbpf.String(bytes(str(loc.lib), "ascii")),
+                alloc_writable_buf_bytes(str(loc.lib).encode("ascii")),
                 None, # func pattern - NULL means to use opts (with non-zero cnt)
                 ctypes.byref(opts),
             )
