@@ -1,11 +1,11 @@
 #!/bin/bash
 
 set -eu
-
+set -x
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 DEST_DIR=$SCRIPT_DIR/libbpf
 
-ARCH_CHOICES=(x86_64 riscv64)
+ARCH_CHOICES=(x86_64) # # riscv64)
 URLS=( \
 https://fr.rpmfind.net/linux/centos-stream/9-stream/BaseOS/x86_64/os/Packages/libbpf-1.4.0-1.el9.x86_64.rpm
 https://fr.rpmfind.net/linux/opensuse/ports/riscv/tumbleweed/repo/oss/riscv64/libbpf1-1.5.0-2.1.riscv64.rpm 

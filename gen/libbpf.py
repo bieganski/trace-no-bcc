@@ -1,7 +1,7 @@
 """Wrapper for libbpf.c
 
 Generated with:
-/home/m.bieganski/.local/bin/ctypesgen -l libbpf.so.1 -D__signed__=signed -D__builtin_constant_p(x)='1' -I ../../libbpf//include/ -I ../../libbpf//include/uapi/ ../../libbpf//src/libbpf.c ../../libbpf//src/libbpf.h
+/home/m.bieganski/.local/bin/ctypesgen -l ./libbpf.so.1 -D__signed__=signed -D__builtin_constant_p(x)='1' -I ../libbpf//include/ -I ../libbpf//include/uapi/ ../libbpf//src/libbpf.c ../libbpf//src/libbpf.h
 
 Do not modify this file.
 """
@@ -322,43 +322,45 @@ class MutableString(UserString):
         return self
 
 
-class String(MutableString, ctypes.Union):
-    _fields_ = [('raw', ctypes.POINTER(ctypes.c_char)), ('data', ctypes.
-        c_char_p)]
+String = ctypes.POINTER(ctypes.c_char)
 
-    def __init__(self, obj=b''):
-        if isinstance(obj, (bytes, UserString)):
-            self.data = bytes(obj)
-        else:
-            self.raw = obj
+# class String(MutableString, ctypes.Union):
+#     _fields_ = [('raw', ctypes.POINTER(ctypes.c_char)), ('data', ctypes.
+#         c_char_p)]
 
-    def __len__(self):
-        return self.data and len(self.data) or 0
+#     def __init__(self, obj=b''):
+#         if isinstance(obj, (bytes, UserString)):
+#             self.data = bytes(obj)
+#         else:
+#             self.raw = obj
 
-    def from_param(cls, obj):
-        if obj is None or obj == 0:
-            return cls(ctypes.POINTER(ctypes.c_char)())
-        elif isinstance(obj, String):
-            return obj
-        elif isinstance(obj, bytes):
-            return cls(obj)
-        elif isinstance(obj, str):
-            return cls(obj.encode())
-        elif isinstance(obj, ctypes.c_char_p):
-            return obj
-        elif isinstance(obj, ctypes.POINTER(ctypes.c_char)):
-            return obj
-        elif isinstance(obj, int):
-            return cls(ctypes.cast(obj, ctypes.POINTER(ctypes.c_char)))
-        elif isinstance(obj, ctypes.c_char * len(obj)):
-            return obj
-        else:
-            return String.from_param(obj._as_parameter_)
-    from_param = classmethod(from_param)
+#     def __len__(self):
+#         return self.data and len(self.data) or 0
+
+#     def from_param(cls, obj):
+#         if obj is None or obj == 0:
+#             return cls(ctypes.POINTER(ctypes.c_char)())
+#         elif isinstance(obj, String):
+#             return obj
+#         elif isinstance(obj, bytes):
+#             return cls(obj)
+#         elif isinstance(obj, str):
+#             return cls(obj.encode())
+#         elif isinstance(obj, ctypes.c_char_p):
+#             return obj
+#         elif isinstance(obj, ctypes.POINTER(ctypes.c_char)):
+#             return obj
+#         elif isinstance(obj, int):
+#             return cls(ctypes.cast(obj, ctypes.POINTER(ctypes.c_char)))
+#         elif isinstance(obj, ctypes.c_char * len(obj)):
+#             return obj
+#         else:
+#             return String.from_param(obj._as_parameter_)
+#     from_param = classmethod(from_param)
 
 
-def ReturnString(obj, func=None, arguments=None):
-    return String.from_param(obj)
+# def ReturnString(obj, func=None, arguments=None):
+#     return String.from_param(obj)
 
 
 def UNCHECKED(type):
@@ -684,7 +686,7 @@ def add_library_search_dirs(other_dirs):
 
 del loaderclass
 add_library_search_dirs([])
-_libs['libbpf.so.1'] = load_library('libbpf.so.1')
+_libs['./libbpf.so.1'] = load_library('./libbpf.so.1')
 __uint16_t = c_ushort
 __uint32_t = c_uint
 __uint64_t = c_ulong
@@ -770,29 +772,29 @@ struct_bpf_insn._fields_ = [('code', __u8), ('dst_reg', __u8, 4), (
 enum_bpf_cgroup_iter_order = c_int
 
 
-class struct_anon_28(Structure):
-    pass
-
-
-struct_anon_28.__slots__ = ['map_fd']
-struct_anon_28._fields_ = [('map_fd', __u32)]
-
-
 class struct_anon_29(Structure):
     pass
 
 
-struct_anon_29.__slots__ = ['order', 'cgroup_fd', 'cgroup_id']
-struct_anon_29._fields_ = [('order', enum_bpf_cgroup_iter_order), (
-    'cgroup_fd', __u32), ('cgroup_id', __u64)]
+struct_anon_29.__slots__ = ['map_fd']
+struct_anon_29._fields_ = [('map_fd', __u32)]
 
 
 class struct_anon_30(Structure):
     pass
 
 
-struct_anon_30.__slots__ = ['tid', 'pid', 'pid_fd']
-struct_anon_30._fields_ = [('tid', __u32), ('pid', __u32), ('pid_fd', __u32)]
+struct_anon_30.__slots__ = ['order', 'cgroup_fd', 'cgroup_id']
+struct_anon_30._fields_ = [('order', enum_bpf_cgroup_iter_order), (
+    'cgroup_fd', __u32), ('cgroup_id', __u64)]
+
+
+class struct_anon_31(Structure):
+    pass
+
+
+struct_anon_31.__slots__ = ['tid', 'pid', 'pid_fd']
+struct_anon_31._fields_ = [('tid', __u32), ('pid', __u32), ('pid_fd', __u32)]
 
 
 class union_bpf_iter_link_info(Union):
@@ -800,8 +802,8 @@ class union_bpf_iter_link_info(Union):
 
 
 union_bpf_iter_link_info.__slots__ = ['map', 'cgroup', 'task']
-union_bpf_iter_link_info._fields_ = [('map', struct_anon_28), ('cgroup',
-    struct_anon_29), ('task', struct_anon_30)]
+union_bpf_iter_link_info._fields_ = [('map', struct_anon_29), ('cgroup',
+    struct_anon_30), ('task', struct_anon_31)]
 enum_bpf_map_type = c_int
 enum_bpf_prog_type = c_int
 enum_bpf_attach_type = c_int
@@ -848,14 +850,15 @@ class struct_bpf_map_info(Structure):
 struct_bpf_map_info.__slots__ = ['type', 'id', 'key_size', 'value_size',
     'max_entries', 'map_flags', 'name', 'ifindex',
     'btf_vmlinux_value_type_id', 'netns_dev', 'netns_ino', 'btf_id',
-    'btf_key_type_id', 'btf_value_type_id', 'btf_vmlinux_id', 'map_extra']
+    'btf_key_type_id', 'btf_value_type_id', 'btf_vmlinux_id', 'map_extra',
+    'hash', 'hash_size']
 struct_bpf_map_info._fields_ = [('type', __u32), ('id', __u32), ('key_size',
     __u32), ('value_size', __u32), ('max_entries', __u32), ('map_flags',
     __u32), ('name', c_char * int(16)), ('ifindex', __u32), (
     'btf_vmlinux_value_type_id', __u32), ('netns_dev', __u64), ('netns_ino',
     __u64), ('btf_id', __u32), ('btf_key_type_id', __u32), (
     'btf_value_type_id', __u32), ('btf_vmlinux_id', __u32), ('map_extra',
-    __u64)]
+    __u64), ('hash', __u64), ('hash_size', __u32)]
 
 
 class struct_bpf_btf_info(Structure):
@@ -866,6 +869,14 @@ struct_bpf_btf_info.__slots__ = ['btf', 'btf_size', 'id', 'name',
     'name_len', 'kernel_btf']
 struct_bpf_btf_info._fields_ = [('btf', __u64), ('btf_size', __u32), ('id',
     __u32), ('name', __u64), ('name_len', __u32), ('kernel_btf', __u32)]
+
+
+class struct_bpf_func_info(Structure):
+    pass
+
+
+struct_bpf_func_info.__slots__ = ['insn_off', 'type_id']
+struct_bpf_func_info._fields_ = [('insn_off', __u32), ('type_id', __u32)]
 
 
 class struct_bpf_line_info(Structure):
@@ -889,12 +900,12 @@ struct_bpf_core_relo._fields_ = [('insn_off', __u32), ('type_id', __u32), (
     'access_str_off', __u32), ('kind', enum_bpf_core_relo_kind)]
 
 
-class union_anon_176(Union):
+class union_anon_186(Union):
     pass
 
 
-union_anon_176.__slots__ = ['size', 'type']
-union_anon_176._fields_ = [('size', __u32), ('type', __u32)]
+union_anon_186.__slots__ = ['size', 'type']
+union_anon_186._fields_ = [('size', __u32), ('type', __u32)]
 
 
 class struct_btf_type(Structure):
@@ -904,7 +915,15 @@ class struct_btf_type(Structure):
 struct_btf_type.__slots__ = ['name_off', 'info', 'unnamed_btf_type_1']
 struct_btf_type._anonymous_ = ['unnamed_btf_type_1']
 struct_btf_type._fields_ = [('name_off', __u32), ('info', __u32), (
-    'unnamed_btf_type_1', union_anon_176)]
+    'unnamed_btf_type_1', union_anon_186)]
+
+
+class struct_btf_enum(Structure):
+    pass
+
+
+struct_btf_enum.__slots__ = ['name_off', 'val']
+struct_btf_enum._fields_ = [('name_off', __u32), ('val', __s32)]
 
 
 class struct_btf_array(Structure):
@@ -950,39 +969,68 @@ struct_btf_var_secinfo._fields_ = [('type', __u32), ('offset', __u32), (
     'size', __u32)]
 
 
-class union_anon_184(Union):
+class struct_btf_enum64(Structure):
     pass
 
 
-union_anon_184.__slots__ = ['sample_period', 'sample_freq']
-union_anon_184._fields_ = [('sample_period', __u64), ('sample_freq', __u64)]
+struct_btf_enum64.__slots__ = ['name_off', 'val_lo32', 'val_hi32']
+struct_btf_enum64._fields_ = [('name_off', __u32), ('val_lo32', __u32), (
+    'val_hi32', __u32)]
 
 
-class union_anon_185(Union):
+class union_anon_194(Union):
     pass
 
 
-union_anon_185.__slots__ = ['wakeup_events', 'wakeup_watermark']
-union_anon_185._fields_ = [('wakeup_events', __u32), ('wakeup_watermark',
+union_anon_194.__slots__ = ['sample_period', 'sample_freq']
+union_anon_194._fields_ = [('sample_period', __u64), ('sample_freq', __u64)]
+
+
+class union_anon_195(Union):
+    pass
+
+
+union_anon_195.__slots__ = ['wakeup_events', 'wakeup_watermark']
+union_anon_195._fields_ = [('wakeup_events', __u32), ('wakeup_watermark',
     __u32)]
 
 
-class union_anon_186(Union):
+class union_anon_196(Union):
     pass
 
 
-union_anon_186.__slots__ = ['bp_addr', 'kprobe_func', 'uprobe_path', 'config1']
-union_anon_186._fields_ = [('bp_addr', __u64), ('kprobe_func', __u64), (
+union_anon_196.__slots__ = ['bp_addr', 'kprobe_func', 'uprobe_path', 'config1']
+union_anon_196._fields_ = [('bp_addr', __u64), ('kprobe_func', __u64), (
     'uprobe_path', __u64), ('config1', __u64)]
 
 
-class union_anon_187(Union):
+class union_anon_197(Union):
     pass
 
 
-union_anon_187.__slots__ = ['bp_len', 'kprobe_addr', 'probe_offset', 'config2']
-union_anon_187._fields_ = [('bp_len', __u64), ('kprobe_addr', __u64), (
+union_anon_197.__slots__ = ['bp_len', 'kprobe_addr', 'probe_offset', 'config2']
+union_anon_197._fields_ = [('bp_len', __u64), ('kprobe_addr', __u64), (
     'probe_offset', __u64), ('config2', __u64)]
+
+
+class struct_anon_198(Structure):
+    pass
+
+
+struct_anon_198.__slots__ = ['aux_start_paused', 'aux_pause', 'aux_resume',
+    '__reserved_3']
+struct_anon_198._fields_ = [('aux_start_paused', __u32, 1), ('aux_pause',
+    __u32, 1), ('aux_resume', __u32, 1), ('__reserved_3', __u32, 29)]
+
+
+class union_anon_199(Union):
+    pass
+
+
+union_anon_199.__slots__ = ['aux_action', 'unnamed_anon_199_1']
+union_anon_199._anonymous_ = ['unnamed_anon_199_1']
+union_anon_199._fields_ = [('aux_action', __u32), ('unnamed_anon_199_1',
+    struct_anon_198)]
 
 
 class struct_perf_event_attr(Structure):
@@ -999,16 +1047,17 @@ struct_perf_event_attr.__slots__ = ['type', 'size', 'config',
     'comm_exec', 'use_clockid', 'context_switch', 'write_backward',
     'namespaces', 'ksymbol', 'bpf_event', 'aux_output', 'cgroup',
     'text_poke', 'build_id', 'inherit_thread', 'remove_on_exec', 'sigtrap',
-    '__reserved_1', 'unnamed_perf_event_attr_2', 'bp_type',
-    'unnamed_perf_event_attr_3', 'unnamed_perf_event_attr_4',
-    'branch_sample_type', 'sample_regs_user', 'sample_stack_user',
-    'clockid', 'sample_regs_intr', 'aux_watermark', 'sample_max_stack',
-    '__reserved_2', 'aux_sample_size', '__reserved_3', 'sig_data', 'config3']
+    'defer_callchain', 'defer_output', '__reserved_1',
+    'unnamed_perf_event_attr_2', 'bp_type', 'unnamed_perf_event_attr_3',
+    'unnamed_perf_event_attr_4', 'branch_sample_type', 'sample_regs_user',
+    'sample_stack_user', 'clockid', 'sample_regs_intr', 'aux_watermark',
+    'sample_max_stack', '__reserved_2', 'aux_sample_size',
+    'unnamed_perf_event_attr_5', 'sig_data', 'config3', 'config4']
 struct_perf_event_attr._anonymous_ = ['unnamed_perf_event_attr_1',
     'unnamed_perf_event_attr_2', 'unnamed_perf_event_attr_3',
-    'unnamed_perf_event_attr_4']
+    'unnamed_perf_event_attr_4', 'unnamed_perf_event_attr_5']
 struct_perf_event_attr._fields_ = [('type', __u32), ('size', __u32), (
-    'config', __u64), ('unnamed_perf_event_attr_1', union_anon_184), (
+    'config', __u64), ('unnamed_perf_event_attr_1', union_anon_194), (
     'sample_type', __u64), ('read_format', __u64), ('disabled', __u64, 1),
     ('inherit', __u64, 1), ('pinned', __u64, 1), ('exclusive', __u64, 1), (
     'exclude_user', __u64, 1), ('exclude_kernel', __u64, 1), ('exclude_hv',
@@ -1023,38 +1072,39 @@ struct_perf_event_attr._fields_ = [('type', __u32), ('size', __u32), (
     'namespaces', __u64, 1), ('ksymbol', __u64, 1), ('bpf_event', __u64, 1),
     ('aux_output', __u64, 1), ('cgroup', __u64, 1), ('text_poke', __u64, 1),
     ('build_id', __u64, 1), ('inherit_thread', __u64, 1), ('remove_on_exec',
-    __u64, 1), ('sigtrap', __u64, 1), ('__reserved_1', __u64, 26), (
-    'unnamed_perf_event_attr_2', union_anon_185), ('bp_type', __u32), (
-    'unnamed_perf_event_attr_3', union_anon_186), (
-    'unnamed_perf_event_attr_4', union_anon_187), ('branch_sample_type',
+    __u64, 1), ('sigtrap', __u64, 1), ('defer_callchain', __u64, 1), (
+    'defer_output', __u64, 1), ('__reserved_1', __u64, 24), (
+    'unnamed_perf_event_attr_2', union_anon_195), ('bp_type', __u32), (
+    'unnamed_perf_event_attr_3', union_anon_196), (
+    'unnamed_perf_event_attr_4', union_anon_197), ('branch_sample_type',
     __u64), ('sample_regs_user', __u64), ('sample_stack_user', __u32), (
     'clockid', __s32), ('sample_regs_intr', __u64), ('aux_watermark', __u32
     ), ('sample_max_stack', __u16), ('__reserved_2', __u16), (
-    'aux_sample_size', __u32), ('__reserved_3', __u32), ('sig_data', __u64),
-    ('config3', __u64)]
+    'aux_sample_size', __u32), ('unnamed_perf_event_attr_5', union_anon_199
+    ), ('sig_data', __u64), ('config3', __u64), ('config4', __u64)]
 
 
-class struct_anon_188(Structure):
+class struct_anon_200(Structure):
     pass
 
 
-struct_anon_188.__slots__ = ['cap_bit0', 'cap_bit0_is_deprecated',
+struct_anon_200.__slots__ = ['cap_bit0', 'cap_bit0_is_deprecated',
     'cap_user_rdpmc', 'cap_user_time', 'cap_user_time_zero',
     'cap_user_time_short', 'cap_____res']
-struct_anon_188._fields_ = [('cap_bit0', __u64, 1), (
+struct_anon_200._fields_ = [('cap_bit0', __u64, 1), (
     'cap_bit0_is_deprecated', __u64, 1), ('cap_user_rdpmc', __u64, 1), (
     'cap_user_time', __u64, 1), ('cap_user_time_zero', __u64, 1), (
     'cap_user_time_short', __u64, 1), ('cap_____res', __u64, 58)]
 
 
-class union_anon_189(Union):
+class union_anon_201(Union):
     pass
 
 
-union_anon_189.__slots__ = ['capabilities', 'unnamed_anon_189_1']
-union_anon_189._anonymous_ = ['unnamed_anon_189_1']
-union_anon_189._fields_ = [('capabilities', __u64), ('unnamed_anon_189_1',
-    struct_anon_188)]
+union_anon_201.__slots__ = ['capabilities', 'unnamed_anon_201_1']
+union_anon_201._anonymous_ = ['unnamed_anon_201_1']
+union_anon_201._fields_ = [('capabilities', __u64), ('unnamed_anon_201_1',
+    struct_anon_200)]
 
 
 class struct_perf_event_mmap_page(Structure):
@@ -1072,7 +1122,7 @@ struct_perf_event_mmap_page._anonymous_ = ['unnamed_perf_event_mmap_page_1']
 struct_perf_event_mmap_page._fields_ = [('version', __u32), (
     'compat_version', __u32), ('lock', __u32), ('index', __u32), ('offset',
     __s64), ('time_enabled', __u64), ('time_running', __u64), (
-    'unnamed_perf_event_mmap_page_1', union_anon_189), ('pmc_width', __u16),
+    'unnamed_perf_event_mmap_page_1', union_anon_201), ('pmc_width', __u16),
     ('time_shift', __u16), ('time_mult', __u32), ('time_offset', __u64), (
     'time_zero', __u64), ('size', __u32), ('__reserved_1', __u32), (
     'time_cycles', __u64), ('time_mask', __u64), ('__reserved', __u8 * int(
@@ -1148,69 +1198,69 @@ Elf64_Off = uint64_t
 Elf64_Section = uint16_t
 
 
-class struct_anon_209(Structure):
+class struct_anon_225(Structure):
     pass
 
 
-struct_anon_209.__slots__ = ['e_ident', 'e_type', 'e_machine', 'e_version',
+struct_anon_225.__slots__ = ['e_ident', 'e_type', 'e_machine', 'e_version',
     'e_entry', 'e_phoff', 'e_shoff', 'e_flags', 'e_ehsize', 'e_phentsize',
     'e_phnum', 'e_shentsize', 'e_shnum', 'e_shstrndx']
-struct_anon_209._fields_ = [('e_ident', c_ubyte * int(16)), ('e_type',
+struct_anon_225._fields_ = [('e_ident', c_ubyte * int(16)), ('e_type',
     Elf64_Half), ('e_machine', Elf64_Half), ('e_version', Elf64_Word), (
     'e_entry', Elf64_Addr), ('e_phoff', Elf64_Off), ('e_shoff', Elf64_Off),
     ('e_flags', Elf64_Word), ('e_ehsize', Elf64_Half), ('e_phentsize',
     Elf64_Half), ('e_phnum', Elf64_Half), ('e_shentsize', Elf64_Half), (
     'e_shnum', Elf64_Half), ('e_shstrndx', Elf64_Half)]
-Elf64_Ehdr = struct_anon_209
+Elf64_Ehdr = struct_anon_225
 
 
-class struct_anon_211(Structure):
+class struct_anon_227(Structure):
     pass
 
 
-struct_anon_211.__slots__ = ['sh_name', 'sh_type', 'sh_flags', 'sh_addr',
+struct_anon_227.__slots__ = ['sh_name', 'sh_type', 'sh_flags', 'sh_addr',
     'sh_offset', 'sh_size', 'sh_link', 'sh_info', 'sh_addralign', 'sh_entsize']
-struct_anon_211._fields_ = [('sh_name', Elf64_Word), ('sh_type', Elf64_Word
+struct_anon_227._fields_ = [('sh_name', Elf64_Word), ('sh_type', Elf64_Word
     ), ('sh_flags', Elf64_Xword), ('sh_addr', Elf64_Addr), ('sh_offset',
     Elf64_Off), ('sh_size', Elf64_Xword), ('sh_link', Elf64_Word), (
     'sh_info', Elf64_Word), ('sh_addralign', Elf64_Xword), ('sh_entsize',
     Elf64_Xword)]
-Elf64_Shdr = struct_anon_211
+Elf64_Shdr = struct_anon_227
 
 
-class struct_anon_215(Structure):
+class struct_anon_231(Structure):
     pass
 
 
-struct_anon_215.__slots__ = ['st_name', 'st_info', 'st_other', 'st_shndx',
+struct_anon_231.__slots__ = ['st_name', 'st_info', 'st_other', 'st_shndx',
     'st_value', 'st_size']
-struct_anon_215._fields_ = [('st_name', Elf64_Word), ('st_info', c_ubyte),
+struct_anon_231._fields_ = [('st_name', Elf64_Word), ('st_info', c_ubyte),
     ('st_other', c_ubyte), ('st_shndx', Elf64_Section), ('st_value',
     Elf64_Addr), ('st_size', Elf64_Xword)]
-Elf64_Sym = struct_anon_215
+Elf64_Sym = struct_anon_231
 
 
-class struct_anon_219(Structure):
+class struct_anon_235(Structure):
     pass
 
 
-struct_anon_219.__slots__ = ['r_offset', 'r_info']
-struct_anon_219._fields_ = [('r_offset', Elf64_Addr), ('r_info', Elf64_Xword)]
-Elf64_Rel = struct_anon_219
-enum_anon_254 = c_int
-Elf_Type = enum_anon_254
+struct_anon_235.__slots__ = ['r_offset', 'r_info']
+struct_anon_235._fields_ = [('r_offset', Elf64_Addr), ('r_info', Elf64_Xword)]
+Elf64_Rel = struct_anon_235
+enum_anon_270 = c_int
+Elf_Type = enum_anon_270
 
 
-class struct_anon_255(Structure):
+class struct_anon_271(Structure):
     pass
 
 
-struct_anon_255.__slots__ = ['d_buf', 'd_type', 'd_version', 'd_size',
+struct_anon_271.__slots__ = ['d_buf', 'd_type', 'd_version', 'd_size',
     'd_off', 'd_align']
-struct_anon_255._fields_ = [('d_buf', POINTER(None)), ('d_type', Elf_Type),
+struct_anon_271._fields_ = [('d_buf', POINTER(None)), ('d_type', Elf_Type),
     ('d_version', c_uint), ('d_size', c_size_t), ('d_off', c_int64), (
     'd_align', c_size_t)]
-Elf_Data = struct_anon_255
+Elf_Data = struct_anon_271
 
 
 class struct_Elf(Structure):
@@ -1253,18 +1303,18 @@ class struct_btf_ext(Structure):
     pass
 
 
-if _libs['libbpf.so.1'].has('libbpf_major_version', 'cdecl'):
-    libbpf_major_version = _libs['libbpf.so.1'].get('libbpf_major_version',
+if _libs['./libbpf.so.1'].has('libbpf_major_version', 'cdecl'):
+    libbpf_major_version = _libs['./libbpf.so.1'].get('libbpf_major_version',
         'cdecl')
     libbpf_major_version.argtypes = []
     libbpf_major_version.restype = __u32
-if _libs['libbpf.so.1'].has('libbpf_minor_version', 'cdecl'):
-    libbpf_minor_version = _libs['libbpf.so.1'].get('libbpf_minor_version',
+if _libs['./libbpf.so.1'].has('libbpf_minor_version', 'cdecl'):
+    libbpf_minor_version = _libs['./libbpf.so.1'].get('libbpf_minor_version',
         'cdecl')
     libbpf_minor_version.argtypes = []
     libbpf_minor_version.restype = __u32
-if _libs['libbpf.so.1'].has('libbpf_version_string', 'cdecl'):
-    libbpf_version_string = _libs['libbpf.so.1'].get('libbpf_version_string',
+if _libs['./libbpf.so.1'].has('libbpf_version_string', 'cdecl'):
+    libbpf_version_string = _libs['./libbpf.so.1'].get('libbpf_version_string',
         'cdecl')
     libbpf_version_string.argtypes = []
     libbpf_version_string.restype = c_char_p
@@ -1285,27 +1335,27 @@ LIBBPF_ERRNO__WRNGPID = LIBBPF_ERRNO__PROGTYPE + 1
 LIBBPF_ERRNO__INVSEQ = LIBBPF_ERRNO__WRNGPID + 1
 LIBBPF_ERRNO__NLPARSE = LIBBPF_ERRNO__INVSEQ + 1
 __LIBBPF_ERRNO__END = LIBBPF_ERRNO__NLPARSE + 1
-if _libs['libbpf.so.1'].has('libbpf_strerror', 'cdecl'):
-    libbpf_strerror = _libs['libbpf.so.1'].get('libbpf_strerror', 'cdecl')
+if _libs['./libbpf.so.1'].has('libbpf_strerror', 'cdecl'):
+    libbpf_strerror = _libs['./libbpf.so.1'].get('libbpf_strerror', 'cdecl')
     libbpf_strerror.argtypes = [c_int, String, c_size_t]
     libbpf_strerror.restype = c_int
-if _libs['libbpf.so.1'].has('libbpf_bpf_attach_type_str', 'cdecl'):
-    libbpf_bpf_attach_type_str = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('libbpf_bpf_attach_type_str', 'cdecl'):
+    libbpf_bpf_attach_type_str = _libs['./libbpf.so.1'].get(
         'libbpf_bpf_attach_type_str', 'cdecl')
     libbpf_bpf_attach_type_str.argtypes = [enum_bpf_attach_type]
     libbpf_bpf_attach_type_str.restype = c_char_p
-if _libs['libbpf.so.1'].has('libbpf_bpf_link_type_str', 'cdecl'):
-    libbpf_bpf_link_type_str = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('libbpf_bpf_link_type_str', 'cdecl'):
+    libbpf_bpf_link_type_str = _libs['./libbpf.so.1'].get(
         'libbpf_bpf_link_type_str', 'cdecl')
     libbpf_bpf_link_type_str.argtypes = [enum_bpf_link_type]
     libbpf_bpf_link_type_str.restype = c_char_p
-if _libs['libbpf.so.1'].has('libbpf_bpf_map_type_str', 'cdecl'):
-    libbpf_bpf_map_type_str = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('libbpf_bpf_map_type_str', 'cdecl'):
+    libbpf_bpf_map_type_str = _libs['./libbpf.so.1'].get(
         'libbpf_bpf_map_type_str', 'cdecl')
     libbpf_bpf_map_type_str.argtypes = [enum_bpf_map_type]
     libbpf_bpf_map_type_str.restype = c_char_p
-if _libs['libbpf.so.1'].has('libbpf_bpf_prog_type_str', 'cdecl'):
-    libbpf_bpf_prog_type_str = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('libbpf_bpf_prog_type_str', 'cdecl'):
+    libbpf_bpf_prog_type_str = _libs['./libbpf.so.1'].get(
         'libbpf_bpf_prog_type_str', 'cdecl')
     libbpf_bpf_prog_type_str.argtypes = [enum_bpf_prog_type]
     libbpf_bpf_prog_type_str.restype = c_char_p
@@ -1315,8 +1365,8 @@ LIBBPF_INFO = LIBBPF_WARN + 1
 LIBBPF_DEBUG = LIBBPF_INFO + 1
 libbpf_print_fn_t = CFUNCTYPE(UNCHECKED(c_int), enum_libbpf_print_level,
     String, c_void_p)
-if _libs['libbpf.so.1'].has('libbpf_set_print', 'cdecl'):
-    libbpf_set_print = _libs['libbpf.so.1'].get('libbpf_set_print', 'cdecl')
+if _libs['./libbpf.so.1'].has('libbpf_set_print', 'cdecl'):
+    libbpf_set_print = _libs['./libbpf.so.1'].get('libbpf_set_print', 'cdecl')
     libbpf_set_print.argtypes = [libbpf_print_fn_t]
     libbpf_set_print.restype = libbpf_print_fn_t
 
@@ -1339,182 +1389,195 @@ struct_bpf_object_open_opts._fields_ = [('sz', c_size_t), ('object_name',
     'btf_custom_path', String), ('kernel_log_buf', String), (
     'kernel_log_size', c_size_t), ('kernel_log_level', __u32), (
     'bpf_token_path', String)]
-if _libs['libbpf.so.1'].has('bpf_object__open', 'cdecl'):
-    bpf_object__open = _libs['libbpf.so.1'].get('bpf_object__open', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_object__open', 'cdecl'):
+    bpf_object__open = _libs['./libbpf.so.1'].get('bpf_object__open', 'cdecl')
     bpf_object__open.argtypes = [String]
     bpf_object__open.restype = POINTER(struct_bpf_object)
-if _libs['libbpf.so.1'].has('bpf_object__open_file', 'cdecl'):
-    bpf_object__open_file = _libs['libbpf.so.1'].get('bpf_object__open_file',
+if _libs['./libbpf.so.1'].has('bpf_object__open_file', 'cdecl'):
+    bpf_object__open_file = _libs['./libbpf.so.1'].get('bpf_object__open_file',
         'cdecl')
     bpf_object__open_file.argtypes = [String, POINTER(
         struct_bpf_object_open_opts)]
     bpf_object__open_file.restype = POINTER(struct_bpf_object)
-if _libs['libbpf.so.1'].has('bpf_object__open_mem', 'cdecl'):
-    bpf_object__open_mem = _libs['libbpf.so.1'].get('bpf_object__open_mem',
+if _libs['./libbpf.so.1'].has('bpf_object__open_mem', 'cdecl'):
+    bpf_object__open_mem = _libs['./libbpf.so.1'].get('bpf_object__open_mem',
         'cdecl')
     bpf_object__open_mem.argtypes = [POINTER(None), c_size_t, POINTER(
         struct_bpf_object_open_opts)]
     bpf_object__open_mem.restype = POINTER(struct_bpf_object)
-if _libs['libbpf.so.1'].has('bpf_object__load', 'cdecl'):
-    bpf_object__load = _libs['libbpf.so.1'].get('bpf_object__load', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_object__prepare', 'cdecl'):
+    bpf_object__prepare = _libs['./libbpf.so.1'].get('bpf_object__prepare',
+        'cdecl')
+    bpf_object__prepare.argtypes = [POINTER(struct_bpf_object)]
+    bpf_object__prepare.restype = c_int
+if _libs['./libbpf.so.1'].has('bpf_object__load', 'cdecl'):
+    bpf_object__load = _libs['./libbpf.so.1'].get('bpf_object__load', 'cdecl')
     bpf_object__load.argtypes = [POINTER(struct_bpf_object)]
     bpf_object__load.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_object__close', 'cdecl'):
-    bpf_object__close = _libs['libbpf.so.1'].get('bpf_object__close', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_object__close', 'cdecl'):
+    bpf_object__close = _libs['./libbpf.so.1'].get('bpf_object__close', 'cdecl'
+        )
     bpf_object__close.argtypes = [POINTER(struct_bpf_object)]
     bpf_object__close.restype = None
-if _libs['libbpf.so.1'].has('bpf_object__pin_maps', 'cdecl'):
-    bpf_object__pin_maps = _libs['libbpf.so.1'].get('bpf_object__pin_maps',
+if _libs['./libbpf.so.1'].has('bpf_object__pin_maps', 'cdecl'):
+    bpf_object__pin_maps = _libs['./libbpf.so.1'].get('bpf_object__pin_maps',
         'cdecl')
     bpf_object__pin_maps.argtypes = [POINTER(struct_bpf_object), String]
     bpf_object__pin_maps.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_object__unpin_maps', 'cdecl'):
-    bpf_object__unpin_maps = _libs['libbpf.so.1'].get('bpf_object__unpin_maps',
-        'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_object__unpin_maps', 'cdecl'):
+    bpf_object__unpin_maps = _libs['./libbpf.so.1'].get(
+        'bpf_object__unpin_maps', 'cdecl')
     bpf_object__unpin_maps.argtypes = [POINTER(struct_bpf_object), String]
     bpf_object__unpin_maps.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_object__pin_programs', 'cdecl'):
-    bpf_object__pin_programs = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_object__pin_programs', 'cdecl'):
+    bpf_object__pin_programs = _libs['./libbpf.so.1'].get(
         'bpf_object__pin_programs', 'cdecl')
     bpf_object__pin_programs.argtypes = [POINTER(struct_bpf_object), String]
     bpf_object__pin_programs.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_object__unpin_programs', 'cdecl'):
-    bpf_object__unpin_programs = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_object__unpin_programs', 'cdecl'):
+    bpf_object__unpin_programs = _libs['./libbpf.so.1'].get(
         'bpf_object__unpin_programs', 'cdecl')
     bpf_object__unpin_programs.argtypes = [POINTER(struct_bpf_object), String]
     bpf_object__unpin_programs.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_object__pin', 'cdecl'):
-    bpf_object__pin = _libs['libbpf.so.1'].get('bpf_object__pin', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_object__pin', 'cdecl'):
+    bpf_object__pin = _libs['./libbpf.so.1'].get('bpf_object__pin', 'cdecl')
     bpf_object__pin.argtypes = [POINTER(struct_bpf_object), String]
     bpf_object__pin.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_object__unpin', 'cdecl'):
-    bpf_object__unpin = _libs['libbpf.so.1'].get('bpf_object__unpin', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_object__unpin', 'cdecl'):
+    bpf_object__unpin = _libs['./libbpf.so.1'].get('bpf_object__unpin', 'cdecl'
+        )
     bpf_object__unpin.argtypes = [POINTER(struct_bpf_object), String]
     bpf_object__unpin.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_object__name', 'cdecl'):
-    bpf_object__name = _libs['libbpf.so.1'].get('bpf_object__name', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_object__name', 'cdecl'):
+    bpf_object__name = _libs['./libbpf.so.1'].get('bpf_object__name', 'cdecl')
     bpf_object__name.argtypes = [POINTER(struct_bpf_object)]
     bpf_object__name.restype = c_char_p
-if _libs['libbpf.so.1'].has('bpf_object__kversion', 'cdecl'):
-    bpf_object__kversion = _libs['libbpf.so.1'].get('bpf_object__kversion',
+if _libs['./libbpf.so.1'].has('bpf_object__kversion', 'cdecl'):
+    bpf_object__kversion = _libs['./libbpf.so.1'].get('bpf_object__kversion',
         'cdecl')
     bpf_object__kversion.argtypes = [POINTER(struct_bpf_object)]
     bpf_object__kversion.restype = c_uint
-if _libs['libbpf.so.1'].has('bpf_object__set_kversion', 'cdecl'):
-    bpf_object__set_kversion = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_object__set_kversion', 'cdecl'):
+    bpf_object__set_kversion = _libs['./libbpf.so.1'].get(
         'bpf_object__set_kversion', 'cdecl')
     bpf_object__set_kversion.argtypes = [POINTER(struct_bpf_object), __u32]
     bpf_object__set_kversion.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_object__btf', 'cdecl'):
-    bpf_object__btf = _libs['libbpf.so.1'].get('bpf_object__btf', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_object__token_fd', 'cdecl'):
+    bpf_object__token_fd = _libs['./libbpf.so.1'].get('bpf_object__token_fd',
+        'cdecl')
+    bpf_object__token_fd.argtypes = [POINTER(struct_bpf_object)]
+    bpf_object__token_fd.restype = c_int
+if _libs['./libbpf.so.1'].has('bpf_object__btf', 'cdecl'):
+    bpf_object__btf = _libs['./libbpf.so.1'].get('bpf_object__btf', 'cdecl')
     bpf_object__btf.argtypes = [POINTER(struct_bpf_object)]
     bpf_object__btf.restype = POINTER(struct_btf)
-if _libs['libbpf.so.1'].has('bpf_object__btf_fd', 'cdecl'):
-    bpf_object__btf_fd = _libs['libbpf.so.1'].get('bpf_object__btf_fd', 'cdecl'
-        )
+if _libs['./libbpf.so.1'].has('bpf_object__btf_fd', 'cdecl'):
+    bpf_object__btf_fd = _libs['./libbpf.so.1'].get('bpf_object__btf_fd',
+        'cdecl')
     bpf_object__btf_fd.argtypes = [POINTER(struct_bpf_object)]
     bpf_object__btf_fd.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_object__find_program_by_name', 'cdecl'):
-    bpf_object__find_program_by_name = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_object__find_program_by_name', 'cdecl'):
+    bpf_object__find_program_by_name = _libs['./libbpf.so.1'].get(
         'bpf_object__find_program_by_name', 'cdecl')
     bpf_object__find_program_by_name.argtypes = [POINTER(struct_bpf_object),
         String]
     bpf_object__find_program_by_name.restype = POINTER(struct_bpf_program)
-if _libs['libbpf.so.1'].has('libbpf_prog_type_by_name', 'cdecl'):
-    libbpf_prog_type_by_name = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('libbpf_prog_type_by_name', 'cdecl'):
+    libbpf_prog_type_by_name = _libs['./libbpf.so.1'].get(
         'libbpf_prog_type_by_name', 'cdecl')
     libbpf_prog_type_by_name.argtypes = [String, POINTER(enum_bpf_prog_type
         ), POINTER(enum_bpf_attach_type)]
     libbpf_prog_type_by_name.restype = c_int
-if _libs['libbpf.so.1'].has('libbpf_attach_type_by_name', 'cdecl'):
-    libbpf_attach_type_by_name = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('libbpf_attach_type_by_name', 'cdecl'):
+    libbpf_attach_type_by_name = _libs['./libbpf.so.1'].get(
         'libbpf_attach_type_by_name', 'cdecl')
     libbpf_attach_type_by_name.argtypes = [String, POINTER(
         enum_bpf_attach_type)]
     libbpf_attach_type_by_name.restype = c_int
-if _libs['libbpf.so.1'].has('libbpf_find_vmlinux_btf_id', 'cdecl'):
-    libbpf_find_vmlinux_btf_id = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('libbpf_find_vmlinux_btf_id', 'cdecl'):
+    libbpf_find_vmlinux_btf_id = _libs['./libbpf.so.1'].get(
         'libbpf_find_vmlinux_btf_id', 'cdecl')
     libbpf_find_vmlinux_btf_id.argtypes = [String, enum_bpf_attach_type]
     libbpf_find_vmlinux_btf_id.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_object__next_program', 'cdecl'):
-    bpf_object__next_program = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_object__next_program', 'cdecl'):
+    bpf_object__next_program = _libs['./libbpf.so.1'].get(
         'bpf_object__next_program', 'cdecl')
     bpf_object__next_program.argtypes = [POINTER(struct_bpf_object),
         POINTER(struct_bpf_program)]
     bpf_object__next_program.restype = POINTER(struct_bpf_program)
-if _libs['libbpf.so.1'].has('bpf_object__prev_program', 'cdecl'):
-    bpf_object__prev_program = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_object__prev_program', 'cdecl'):
+    bpf_object__prev_program = _libs['./libbpf.so.1'].get(
         'bpf_object__prev_program', 'cdecl')
     bpf_object__prev_program.argtypes = [POINTER(struct_bpf_object),
         POINTER(struct_bpf_program)]
     bpf_object__prev_program.restype = POINTER(struct_bpf_program)
-if _libs['libbpf.so.1'].has('bpf_program__set_ifindex', 'cdecl'):
-    bpf_program__set_ifindex = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__set_ifindex', 'cdecl'):
+    bpf_program__set_ifindex = _libs['./libbpf.so.1'].get(
         'bpf_program__set_ifindex', 'cdecl')
     bpf_program__set_ifindex.argtypes = [POINTER(struct_bpf_program), __u32]
     bpf_program__set_ifindex.restype = None
-if _libs['libbpf.so.1'].has('bpf_program__name', 'cdecl'):
-    bpf_program__name = _libs['libbpf.so.1'].get('bpf_program__name', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_program__name', 'cdecl'):
+    bpf_program__name = _libs['./libbpf.so.1'].get('bpf_program__name', 'cdecl'
+        )
     bpf_program__name.argtypes = [POINTER(struct_bpf_program)]
     bpf_program__name.restype = c_char_p
-if _libs['libbpf.so.1'].has('bpf_program__section_name', 'cdecl'):
-    bpf_program__section_name = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__section_name', 'cdecl'):
+    bpf_program__section_name = _libs['./libbpf.so.1'].get(
         'bpf_program__section_name', 'cdecl')
     bpf_program__section_name.argtypes = [POINTER(struct_bpf_program)]
     bpf_program__section_name.restype = c_char_p
-if _libs['libbpf.so.1'].has('bpf_program__autoload', 'cdecl'):
-    bpf_program__autoload = _libs['libbpf.so.1'].get('bpf_program__autoload',
+if _libs['./libbpf.so.1'].has('bpf_program__autoload', 'cdecl'):
+    bpf_program__autoload = _libs['./libbpf.so.1'].get('bpf_program__autoload',
         'cdecl')
     bpf_program__autoload.argtypes = [POINTER(struct_bpf_program)]
     bpf_program__autoload.restype = c_bool
-if _libs['libbpf.so.1'].has('bpf_program__set_autoload', 'cdecl'):
-    bpf_program__set_autoload = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__set_autoload', 'cdecl'):
+    bpf_program__set_autoload = _libs['./libbpf.so.1'].get(
         'bpf_program__set_autoload', 'cdecl')
     bpf_program__set_autoload.argtypes = [POINTER(struct_bpf_program), c_bool]
     bpf_program__set_autoload.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_program__autoattach', 'cdecl'):
-    bpf_program__autoattach = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__autoattach', 'cdecl'):
+    bpf_program__autoattach = _libs['./libbpf.so.1'].get(
         'bpf_program__autoattach', 'cdecl')
     bpf_program__autoattach.argtypes = [POINTER(struct_bpf_program)]
     bpf_program__autoattach.restype = c_bool
-if _libs['libbpf.so.1'].has('bpf_program__set_autoattach', 'cdecl'):
-    bpf_program__set_autoattach = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__set_autoattach', 'cdecl'):
+    bpf_program__set_autoattach = _libs['./libbpf.so.1'].get(
         'bpf_program__set_autoattach', 'cdecl')
     bpf_program__set_autoattach.argtypes = [POINTER(struct_bpf_program), c_bool
         ]
     bpf_program__set_autoattach.restype = None
-if _libs['libbpf.so.1'].has('bpf_program__insns', 'cdecl'):
-    bpf_program__insns = _libs['libbpf.so.1'].get('bpf_program__insns', 'cdecl'
-        )
+if _libs['./libbpf.so.1'].has('bpf_program__insns', 'cdecl'):
+    bpf_program__insns = _libs['./libbpf.so.1'].get('bpf_program__insns',
+        'cdecl')
     bpf_program__insns.argtypes = [POINTER(struct_bpf_program)]
     bpf_program__insns.restype = POINTER(struct_bpf_insn)
-if _libs['libbpf.so.1'].has('bpf_program__set_insns', 'cdecl'):
-    bpf_program__set_insns = _libs['libbpf.so.1'].get('bpf_program__set_insns',
-        'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_program__set_insns', 'cdecl'):
+    bpf_program__set_insns = _libs['./libbpf.so.1'].get(
+        'bpf_program__set_insns', 'cdecl')
     bpf_program__set_insns.argtypes = [POINTER(struct_bpf_program), POINTER
         (struct_bpf_insn), c_size_t]
     bpf_program__set_insns.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_program__insn_cnt', 'cdecl'):
-    bpf_program__insn_cnt = _libs['libbpf.so.1'].get('bpf_program__insn_cnt',
+if _libs['./libbpf.so.1'].has('bpf_program__insn_cnt', 'cdecl'):
+    bpf_program__insn_cnt = _libs['./libbpf.so.1'].get('bpf_program__insn_cnt',
         'cdecl')
     bpf_program__insn_cnt.argtypes = [POINTER(struct_bpf_program)]
     bpf_program__insn_cnt.restype = c_size_t
-if _libs['libbpf.so.1'].has('bpf_program__fd', 'cdecl'):
-    bpf_program__fd = _libs['libbpf.so.1'].get('bpf_program__fd', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_program__fd', 'cdecl'):
+    bpf_program__fd = _libs['./libbpf.so.1'].get('bpf_program__fd', 'cdecl')
     bpf_program__fd.argtypes = [POINTER(struct_bpf_program)]
     bpf_program__fd.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_program__pin', 'cdecl'):
-    bpf_program__pin = _libs['libbpf.so.1'].get('bpf_program__pin', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_program__pin', 'cdecl'):
+    bpf_program__pin = _libs['./libbpf.so.1'].get('bpf_program__pin', 'cdecl')
     bpf_program__pin.argtypes = [POINTER(struct_bpf_program), String]
     bpf_program__pin.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_program__unpin', 'cdecl'):
-    bpf_program__unpin = _libs['libbpf.so.1'].get('bpf_program__unpin', 'cdecl'
-        )
+if _libs['./libbpf.so.1'].has('bpf_program__unpin', 'cdecl'):
+    bpf_program__unpin = _libs['./libbpf.so.1'].get('bpf_program__unpin',
+        'cdecl')
     bpf_program__unpin.argtypes = [POINTER(struct_bpf_program), String]
     bpf_program__unpin.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_program__unload', 'cdecl'):
-    bpf_program__unload = _libs['libbpf.so.1'].get('bpf_program__unload',
+if _libs['./libbpf.so.1'].has('bpf_program__unload', 'cdecl'):
+    bpf_program__unload = _libs['./libbpf.so.1'].get('bpf_program__unload',
         'cdecl')
     bpf_program__unload.argtypes = [POINTER(struct_bpf_program)]
     bpf_program__unload.restype = None
@@ -1524,48 +1587,49 @@ class struct_bpf_link(Structure):
     pass
 
 
-if _libs['libbpf.so.1'].has('bpf_link__open', 'cdecl'):
-    bpf_link__open = _libs['libbpf.so.1'].get('bpf_link__open', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_link__open', 'cdecl'):
+    bpf_link__open = _libs['./libbpf.so.1'].get('bpf_link__open', 'cdecl')
     bpf_link__open.argtypes = [String]
     bpf_link__open.restype = POINTER(struct_bpf_link)
-if _libs['libbpf.so.1'].has('bpf_link__fd', 'cdecl'):
-    bpf_link__fd = _libs['libbpf.so.1'].get('bpf_link__fd', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_link__fd', 'cdecl'):
+    bpf_link__fd = _libs['./libbpf.so.1'].get('bpf_link__fd', 'cdecl')
     bpf_link__fd.argtypes = [POINTER(struct_bpf_link)]
     bpf_link__fd.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_link__pin_path', 'cdecl'):
-    bpf_link__pin_path = _libs['libbpf.so.1'].get('bpf_link__pin_path', 'cdecl'
-        )
+if _libs['./libbpf.so.1'].has('bpf_link__pin_path', 'cdecl'):
+    bpf_link__pin_path = _libs['./libbpf.so.1'].get('bpf_link__pin_path',
+        'cdecl')
     bpf_link__pin_path.argtypes = [POINTER(struct_bpf_link)]
     bpf_link__pin_path.restype = c_char_p
-if _libs['libbpf.so.1'].has('bpf_link__pin', 'cdecl'):
-    bpf_link__pin = _libs['libbpf.so.1'].get('bpf_link__pin', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_link__pin', 'cdecl'):
+    bpf_link__pin = _libs['./libbpf.so.1'].get('bpf_link__pin', 'cdecl')
     bpf_link__pin.argtypes = [POINTER(struct_bpf_link), String]
     bpf_link__pin.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_link__unpin', 'cdecl'):
-    bpf_link__unpin = _libs['libbpf.so.1'].get('bpf_link__unpin', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_link__unpin', 'cdecl'):
+    bpf_link__unpin = _libs['./libbpf.so.1'].get('bpf_link__unpin', 'cdecl')
     bpf_link__unpin.argtypes = [POINTER(struct_bpf_link)]
     bpf_link__unpin.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_link__update_program', 'cdecl'):
-    bpf_link__update_program = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_link__update_program', 'cdecl'):
+    bpf_link__update_program = _libs['./libbpf.so.1'].get(
         'bpf_link__update_program', 'cdecl')
     bpf_link__update_program.argtypes = [POINTER(struct_bpf_link), POINTER(
         struct_bpf_program)]
     bpf_link__update_program.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_link__disconnect', 'cdecl'):
-    bpf_link__disconnect = _libs['libbpf.so.1'].get('bpf_link__disconnect',
+if _libs['./libbpf.so.1'].has('bpf_link__disconnect', 'cdecl'):
+    bpf_link__disconnect = _libs['./libbpf.so.1'].get('bpf_link__disconnect',
         'cdecl')
     bpf_link__disconnect.argtypes = [POINTER(struct_bpf_link)]
     bpf_link__disconnect.restype = None
-if _libs['libbpf.so.1'].has('bpf_link__detach', 'cdecl'):
-    bpf_link__detach = _libs['libbpf.so.1'].get('bpf_link__detach', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_link__detach', 'cdecl'):
+    bpf_link__detach = _libs['./libbpf.so.1'].get('bpf_link__detach', 'cdecl')
     bpf_link__detach.argtypes = [POINTER(struct_bpf_link)]
     bpf_link__detach.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_link__destroy', 'cdecl'):
-    bpf_link__destroy = _libs['libbpf.so.1'].get('bpf_link__destroy', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_link__destroy', 'cdecl'):
+    bpf_link__destroy = _libs['./libbpf.so.1'].get('bpf_link__destroy', 'cdecl'
+        )
     bpf_link__destroy.argtypes = [POINTER(struct_bpf_link)]
     bpf_link__destroy.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_program__attach', 'cdecl'):
-    bpf_program__attach = _libs['libbpf.so.1'].get('bpf_program__attach',
+if _libs['./libbpf.so.1'].has('bpf_program__attach', 'cdecl'):
+    bpf_program__attach = _libs['./libbpf.so.1'].get('bpf_program__attach',
         'cdecl')
     bpf_program__attach.argtypes = [POINTER(struct_bpf_program)]
     bpf_program__attach.restype = POINTER(struct_bpf_link)
@@ -1576,17 +1640,17 @@ class struct_bpf_perf_event_opts(Structure):
 
 
 struct_bpf_perf_event_opts.__slots__ = ['sz', 'bpf_cookie',
-    'force_ioctl_attach', 'unnamed_bpf_perf_event_opts_1']
+    'force_ioctl_attach', 'dont_enable', 'unnamed_bpf_perf_event_opts_1']
 struct_bpf_perf_event_opts._fields_ = [('sz', c_size_t), ('bpf_cookie',
-    __u64), ('force_ioctl_attach', c_bool)]
-if _libs['libbpf.so.1'].has('bpf_program__attach_perf_event', 'cdecl'):
-    bpf_program__attach_perf_event = _libs['libbpf.so.1'].get(
+    __u64), ('force_ioctl_attach', c_bool), ('dont_enable', c_bool)]
+if _libs['./libbpf.so.1'].has('bpf_program__attach_perf_event', 'cdecl'):
+    bpf_program__attach_perf_event = _libs['./libbpf.so.1'].get(
         'bpf_program__attach_perf_event', 'cdecl')
     bpf_program__attach_perf_event.argtypes = [POINTER(struct_bpf_program),
         c_int]
     bpf_program__attach_perf_event.restype = POINTER(struct_bpf_link)
-if _libs['libbpf.so.1'].has('bpf_program__attach_perf_event_opts', 'cdecl'):
-    bpf_program__attach_perf_event_opts = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__attach_perf_event_opts', 'cdecl'):
+    bpf_program__attach_perf_event_opts = _libs['./libbpf.so.1'].get(
         'bpf_program__attach_perf_event_opts', 'cdecl')
     bpf_program__attach_perf_event_opts.argtypes = [POINTER(
         struct_bpf_program), c_int, POINTER(struct_bpf_perf_event_opts)]
@@ -1607,14 +1671,14 @@ struct_bpf_kprobe_opts.__slots__ = ['sz', 'bpf_cookie', 'offset',
 struct_bpf_kprobe_opts._fields_ = [('sz', c_size_t), ('bpf_cookie', __u64),
     ('offset', c_size_t), ('retprobe', c_bool), ('attach_mode',
     enum_probe_attach_mode)]
-if _libs['libbpf.so.1'].has('bpf_program__attach_kprobe', 'cdecl'):
-    bpf_program__attach_kprobe = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__attach_kprobe', 'cdecl'):
+    bpf_program__attach_kprobe = _libs['./libbpf.so.1'].get(
         'bpf_program__attach_kprobe', 'cdecl')
     bpf_program__attach_kprobe.argtypes = [POINTER(struct_bpf_program),
         c_bool, String]
     bpf_program__attach_kprobe.restype = POINTER(struct_bpf_link)
-if _libs['libbpf.so.1'].has('bpf_program__attach_kprobe_opts', 'cdecl'):
-    bpf_program__attach_kprobe_opts = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__attach_kprobe_opts', 'cdecl'):
+    bpf_program__attach_kprobe_opts = _libs['./libbpf.so.1'].get(
         'bpf_program__attach_kprobe_opts', 'cdecl')
     bpf_program__attach_kprobe_opts.argtypes = [POINTER(struct_bpf_program),
         String, POINTER(struct_bpf_kprobe_opts)]
@@ -1626,12 +1690,15 @@ class struct_bpf_kprobe_multi_opts(Structure):
 
 
 struct_bpf_kprobe_multi_opts.__slots__ = ['sz', 'syms', 'addrs', 'cookies',
-    'cnt', 'retprobe', 'unnamed_bpf_kprobe_multi_opts_1']
+    'cnt', 'retprobe', 'session', 'unique_match',
+    'unnamed_bpf_kprobe_multi_opts_1']
 struct_bpf_kprobe_multi_opts._fields_ = [('sz', c_size_t), ('syms', POINTER
     (POINTER(c_char))), ('addrs', POINTER(c_ulong)), ('cookies', POINTER(
-    __u64)), ('cnt', c_size_t), ('retprobe', c_bool)]
-if _libs['libbpf.so.1'].has('bpf_program__attach_kprobe_multi_opts', 'cdecl'):
-    bpf_program__attach_kprobe_multi_opts = _libs['libbpf.so.1'].get(
+    __u64)), ('cnt', c_size_t), ('retprobe', c_bool), ('session', c_bool),
+    ('unique_match', c_bool)]
+if _libs['./libbpf.so.1'].has('bpf_program__attach_kprobe_multi_opts', 'cdecl'
+    ):
+    bpf_program__attach_kprobe_multi_opts = _libs['./libbpf.so.1'].get(
         'bpf_program__attach_kprobe_multi_opts', 'cdecl')
     bpf_program__attach_kprobe_multi_opts.argtypes = [POINTER(
         struct_bpf_program), String, POINTER(struct_bpf_kprobe_multi_opts)]
@@ -1643,14 +1710,14 @@ class struct_bpf_uprobe_multi_opts(Structure):
 
 
 struct_bpf_uprobe_multi_opts.__slots__ = ['sz', 'syms', 'offsets',
-    'ref_ctr_offsets', 'cookies', 'cnt', 'retprobe',
+    'ref_ctr_offsets', 'cookies', 'cnt', 'retprobe', 'session',
     'unnamed_bpf_uprobe_multi_opts_1']
 struct_bpf_uprobe_multi_opts._fields_ = [('sz', c_size_t), ('syms', POINTER
     (POINTER(c_char))), ('offsets', POINTER(c_ulong)), ('ref_ctr_offsets',
     POINTER(c_ulong)), ('cookies', POINTER(__u64)), ('cnt', c_size_t), (
-    'retprobe', c_bool)]
-if _libs['libbpf.so.1'].has('bpf_program__attach_uprobe_multi', 'cdecl'):
-    bpf_program__attach_uprobe_multi = _libs['libbpf.so.1'].get(
+    'retprobe', c_bool), ('session', c_bool)]
+if _libs['./libbpf.so.1'].has('bpf_program__attach_uprobe_multi', 'cdecl'):
+    bpf_program__attach_uprobe_multi = _libs['./libbpf.so.1'].get(
         'bpf_program__attach_uprobe_multi', 'cdecl')
     bpf_program__attach_uprobe_multi.argtypes = [POINTER(struct_bpf_program
         ), pid_t, String, String, POINTER(struct_bpf_uprobe_multi_opts)]
@@ -1665,8 +1732,8 @@ struct_bpf_ksyscall_opts.__slots__ = ['sz', 'bpf_cookie', 'retprobe',
     'unnamed_bpf_ksyscall_opts_1']
 struct_bpf_ksyscall_opts._fields_ = [('sz', c_size_t), ('bpf_cookie', __u64
     ), ('retprobe', c_bool)]
-if _libs['libbpf.so.1'].has('bpf_program__attach_ksyscall', 'cdecl'):
-    bpf_program__attach_ksyscall = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__attach_ksyscall', 'cdecl'):
+    bpf_program__attach_ksyscall = _libs['./libbpf.so.1'].get(
         'bpf_program__attach_ksyscall', 'cdecl')
     bpf_program__attach_ksyscall.argtypes = [POINTER(struct_bpf_program),
         String, POINTER(struct_bpf_ksyscall_opts)]
@@ -1682,14 +1749,14 @@ struct_bpf_uprobe_opts.__slots__ = ['sz', 'ref_ctr_offset', 'bpf_cookie',
 struct_bpf_uprobe_opts._fields_ = [('sz', c_size_t), ('ref_ctr_offset',
     c_size_t), ('bpf_cookie', __u64), ('retprobe', c_bool), ('func_name',
     String), ('attach_mode', enum_probe_attach_mode)]
-if _libs['libbpf.so.1'].has('bpf_program__attach_uprobe', 'cdecl'):
-    bpf_program__attach_uprobe = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__attach_uprobe', 'cdecl'):
+    bpf_program__attach_uprobe = _libs['./libbpf.so.1'].get(
         'bpf_program__attach_uprobe', 'cdecl')
     bpf_program__attach_uprobe.argtypes = [POINTER(struct_bpf_program),
         c_bool, pid_t, String, c_size_t]
     bpf_program__attach_uprobe.restype = POINTER(struct_bpf_link)
-if _libs['libbpf.so.1'].has('bpf_program__attach_uprobe_opts', 'cdecl'):
-    bpf_program__attach_uprobe_opts = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__attach_uprobe_opts', 'cdecl'):
+    bpf_program__attach_uprobe_opts = _libs['./libbpf.so.1'].get(
         'bpf_program__attach_uprobe_opts', 'cdecl')
     bpf_program__attach_uprobe_opts.argtypes = [POINTER(struct_bpf_program),
         pid_t, String, c_size_t, POINTER(struct_bpf_uprobe_opts)]
@@ -1703,8 +1770,8 @@ class struct_bpf_usdt_opts(Structure):
 struct_bpf_usdt_opts.__slots__ = ['sz', 'usdt_cookie',
     'unnamed_bpf_usdt_opts_1']
 struct_bpf_usdt_opts._fields_ = [('sz', c_size_t), ('usdt_cookie', __u64)]
-if _libs['libbpf.so.1'].has('bpf_program__attach_usdt', 'cdecl'):
-    bpf_program__attach_usdt = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__attach_usdt', 'cdecl'):
+    bpf_program__attach_usdt = _libs['./libbpf.so.1'].get(
         'bpf_program__attach_usdt', 'cdecl')
     bpf_program__attach_usdt.argtypes = [POINTER(struct_bpf_program), pid_t,
         String, String, String, POINTER(struct_bpf_usdt_opts)]
@@ -1717,25 +1784,41 @@ class struct_bpf_tracepoint_opts(Structure):
 
 struct_bpf_tracepoint_opts.__slots__ = ['sz', 'bpf_cookie']
 struct_bpf_tracepoint_opts._fields_ = [('sz', c_size_t), ('bpf_cookie', __u64)]
-if _libs['libbpf.so.1'].has('bpf_program__attach_tracepoint', 'cdecl'):
-    bpf_program__attach_tracepoint = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__attach_tracepoint', 'cdecl'):
+    bpf_program__attach_tracepoint = _libs['./libbpf.so.1'].get(
         'bpf_program__attach_tracepoint', 'cdecl')
     bpf_program__attach_tracepoint.argtypes = [POINTER(struct_bpf_program),
         String, String]
     bpf_program__attach_tracepoint.restype = POINTER(struct_bpf_link)
-if _libs['libbpf.so.1'].has('bpf_program__attach_tracepoint_opts', 'cdecl'):
-    bpf_program__attach_tracepoint_opts = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__attach_tracepoint_opts', 'cdecl'):
+    bpf_program__attach_tracepoint_opts = _libs['./libbpf.so.1'].get(
         'bpf_program__attach_tracepoint_opts', 'cdecl')
     bpf_program__attach_tracepoint_opts.argtypes = [POINTER(
         struct_bpf_program), String, String, POINTER(
         struct_bpf_tracepoint_opts)]
     bpf_program__attach_tracepoint_opts.restype = POINTER(struct_bpf_link)
-if _libs['libbpf.so.1'].has('bpf_program__attach_raw_tracepoint', 'cdecl'):
-    bpf_program__attach_raw_tracepoint = _libs['libbpf.so.1'].get(
+
+
+class struct_bpf_raw_tracepoint_opts(Structure):
+    pass
+
+
+struct_bpf_raw_tracepoint_opts.__slots__ = ['sz', 'cookie',
+    'unnamed_bpf_raw_tracepoint_opts_1']
+struct_bpf_raw_tracepoint_opts._fields_ = [('sz', c_size_t), ('cookie', __u64)]
+if _libs['./libbpf.so.1'].has('bpf_program__attach_raw_tracepoint', 'cdecl'):
+    bpf_program__attach_raw_tracepoint = _libs['./libbpf.so.1'].get(
         'bpf_program__attach_raw_tracepoint', 'cdecl')
     bpf_program__attach_raw_tracepoint.argtypes = [POINTER(
         struct_bpf_program), String]
     bpf_program__attach_raw_tracepoint.restype = POINTER(struct_bpf_link)
+if _libs['./libbpf.so.1'].has('bpf_program__attach_raw_tracepoint_opts',
+    'cdecl'):
+    bpf_program__attach_raw_tracepoint_opts = _libs['./libbpf.so.1'].get(
+        'bpf_program__attach_raw_tracepoint_opts', 'cdecl')
+    bpf_program__attach_raw_tracepoint_opts.argtypes = [POINTER(
+        struct_bpf_program), String, POINTER(struct_bpf_raw_tracepoint_opts)]
+    bpf_program__attach_raw_tracepoint_opts.restype = POINTER(struct_bpf_link)
 
 
 class struct_bpf_trace_opts(Structure):
@@ -1744,39 +1827,44 @@ class struct_bpf_trace_opts(Structure):
 
 struct_bpf_trace_opts.__slots__ = ['sz', 'cookie']
 struct_bpf_trace_opts._fields_ = [('sz', c_size_t), ('cookie', __u64)]
-if _libs['libbpf.so.1'].has('bpf_program__attach_trace', 'cdecl'):
-    bpf_program__attach_trace = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__attach_trace', 'cdecl'):
+    bpf_program__attach_trace = _libs['./libbpf.so.1'].get(
         'bpf_program__attach_trace', 'cdecl')
     bpf_program__attach_trace.argtypes = [POINTER(struct_bpf_program)]
     bpf_program__attach_trace.restype = POINTER(struct_bpf_link)
-if _libs['libbpf.so.1'].has('bpf_program__attach_trace_opts', 'cdecl'):
-    bpf_program__attach_trace_opts = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__attach_trace_opts', 'cdecl'):
+    bpf_program__attach_trace_opts = _libs['./libbpf.so.1'].get(
         'bpf_program__attach_trace_opts', 'cdecl')
     bpf_program__attach_trace_opts.argtypes = [POINTER(struct_bpf_program),
         POINTER(struct_bpf_trace_opts)]
     bpf_program__attach_trace_opts.restype = POINTER(struct_bpf_link)
-if _libs['libbpf.so.1'].has('bpf_program__attach_lsm', 'cdecl'):
-    bpf_program__attach_lsm = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__attach_lsm', 'cdecl'):
+    bpf_program__attach_lsm = _libs['./libbpf.so.1'].get(
         'bpf_program__attach_lsm', 'cdecl')
     bpf_program__attach_lsm.argtypes = [POINTER(struct_bpf_program)]
     bpf_program__attach_lsm.restype = POINTER(struct_bpf_link)
-if _libs['libbpf.so.1'].has('bpf_program__attach_cgroup', 'cdecl'):
-    bpf_program__attach_cgroup = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__attach_cgroup', 'cdecl'):
+    bpf_program__attach_cgroup = _libs['./libbpf.so.1'].get(
         'bpf_program__attach_cgroup', 'cdecl')
     bpf_program__attach_cgroup.argtypes = [POINTER(struct_bpf_program), c_int]
     bpf_program__attach_cgroup.restype = POINTER(struct_bpf_link)
-if _libs['libbpf.so.1'].has('bpf_program__attach_netns', 'cdecl'):
-    bpf_program__attach_netns = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__attach_netns', 'cdecl'):
+    bpf_program__attach_netns = _libs['./libbpf.so.1'].get(
         'bpf_program__attach_netns', 'cdecl')
     bpf_program__attach_netns.argtypes = [POINTER(struct_bpf_program), c_int]
     bpf_program__attach_netns.restype = POINTER(struct_bpf_link)
-if _libs['libbpf.so.1'].has('bpf_program__attach_xdp', 'cdecl'):
-    bpf_program__attach_xdp = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__attach_sockmap', 'cdecl'):
+    bpf_program__attach_sockmap = _libs['./libbpf.so.1'].get(
+        'bpf_program__attach_sockmap', 'cdecl')
+    bpf_program__attach_sockmap.argtypes = [POINTER(struct_bpf_program), c_int]
+    bpf_program__attach_sockmap.restype = POINTER(struct_bpf_link)
+if _libs['./libbpf.so.1'].has('bpf_program__attach_xdp', 'cdecl'):
+    bpf_program__attach_xdp = _libs['./libbpf.so.1'].get(
         'bpf_program__attach_xdp', 'cdecl')
     bpf_program__attach_xdp.argtypes = [POINTER(struct_bpf_program), c_int]
     bpf_program__attach_xdp.restype = POINTER(struct_bpf_link)
-if _libs['libbpf.so.1'].has('bpf_program__attach_freplace', 'cdecl'):
-    bpf_program__attach_freplace = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__attach_freplace', 'cdecl'):
+    bpf_program__attach_freplace = _libs['./libbpf.so.1'].get(
         'bpf_program__attach_freplace', 'cdecl')
     bpf_program__attach_freplace.argtypes = [POINTER(struct_bpf_program),
         c_int, String]
@@ -1791,8 +1879,8 @@ struct_bpf_netfilter_opts.__slots__ = ['sz', 'pf', 'hooknum', 'priority',
     'flags']
 struct_bpf_netfilter_opts._fields_ = [('sz', c_size_t), ('pf', __u32), (
     'hooknum', __u32), ('priority', __s32), ('flags', __u32)]
-if _libs['libbpf.so.1'].has('bpf_program__attach_netfilter', 'cdecl'):
-    bpf_program__attach_netfilter = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__attach_netfilter', 'cdecl'):
+    bpf_program__attach_netfilter = _libs['./libbpf.so.1'].get(
         'bpf_program__attach_netfilter', 'cdecl')
     bpf_program__attach_netfilter.argtypes = [POINTER(struct_bpf_program),
         POINTER(struct_bpf_netfilter_opts)]
@@ -1808,8 +1896,8 @@ struct_bpf_tcx_opts.__slots__ = ['sz', 'flags', 'relative_fd',
 struct_bpf_tcx_opts._fields_ = [('sz', c_size_t), ('flags', __u32), (
     'relative_fd', __u32), ('relative_id', __u32), ('expected_revision', __u64)
     ]
-if _libs['libbpf.so.1'].has('bpf_program__attach_tcx', 'cdecl'):
-    bpf_program__attach_tcx = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__attach_tcx', 'cdecl'):
+    bpf_program__attach_tcx = _libs['./libbpf.so.1'].get(
         'bpf_program__attach_tcx', 'cdecl')
     bpf_program__attach_tcx.argtypes = [POINTER(struct_bpf_program), c_int,
         POINTER(struct_bpf_tcx_opts)]
@@ -1825,19 +1913,36 @@ struct_bpf_netkit_opts.__slots__ = ['sz', 'flags', 'relative_fd',
 struct_bpf_netkit_opts._fields_ = [('sz', c_size_t), ('flags', __u32), (
     'relative_fd', __u32), ('relative_id', __u32), ('expected_revision', __u64)
     ]
-if _libs['libbpf.so.1'].has('bpf_program__attach_netkit', 'cdecl'):
-    bpf_program__attach_netkit = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__attach_netkit', 'cdecl'):
+    bpf_program__attach_netkit = _libs['./libbpf.so.1'].get(
         'bpf_program__attach_netkit', 'cdecl')
     bpf_program__attach_netkit.argtypes = [POINTER(struct_bpf_program),
         c_int, POINTER(struct_bpf_netkit_opts)]
     bpf_program__attach_netkit.restype = POINTER(struct_bpf_link)
-if _libs['libbpf.so.1'].has('bpf_map__attach_struct_ops', 'cdecl'):
-    bpf_map__attach_struct_ops = _libs['libbpf.so.1'].get(
+
+
+class struct_bpf_cgroup_opts(Structure):
+    pass
+
+
+struct_bpf_cgroup_opts.__slots__ = ['sz', 'flags', 'relative_fd',
+    'relative_id', 'expected_revision', 'unnamed_bpf_cgroup_opts_1']
+struct_bpf_cgroup_opts._fields_ = [('sz', c_size_t), ('flags', __u32), (
+    'relative_fd', __u32), ('relative_id', __u32), ('expected_revision', __u64)
+    ]
+if _libs['./libbpf.so.1'].has('bpf_program__attach_cgroup_opts', 'cdecl'):
+    bpf_program__attach_cgroup_opts = _libs['./libbpf.so.1'].get(
+        'bpf_program__attach_cgroup_opts', 'cdecl')
+    bpf_program__attach_cgroup_opts.argtypes = [POINTER(struct_bpf_program),
+        c_int, POINTER(struct_bpf_cgroup_opts)]
+    bpf_program__attach_cgroup_opts.restype = POINTER(struct_bpf_link)
+if _libs['./libbpf.so.1'].has('bpf_map__attach_struct_ops', 'cdecl'):
+    bpf_map__attach_struct_ops = _libs['./libbpf.so.1'].get(
         'bpf_map__attach_struct_ops', 'cdecl')
     bpf_map__attach_struct_ops.argtypes = [POINTER(struct_bpf_map)]
     bpf_map__attach_struct_ops.restype = POINTER(struct_bpf_link)
-if _libs['libbpf.so.1'].has('bpf_link__update_map', 'cdecl'):
-    bpf_link__update_map = _libs['libbpf.so.1'].get('bpf_link__update_map',
+if _libs['./libbpf.so.1'].has('bpf_link__update_map', 'cdecl'):
+    bpf_link__update_map = _libs['./libbpf.so.1'].get('bpf_link__update_map',
         'cdecl')
     bpf_link__update_map.argtypes = [POINTER(struct_bpf_link), POINTER(
         struct_bpf_map)]
@@ -1851,283 +1956,343 @@ class struct_bpf_iter_attach_opts(Structure):
 struct_bpf_iter_attach_opts.__slots__ = ['sz', 'link_info', 'link_info_len']
 struct_bpf_iter_attach_opts._fields_ = [('sz', c_size_t), ('link_info',
     POINTER(union_bpf_iter_link_info)), ('link_info_len', __u32)]
-if _libs['libbpf.so.1'].has('bpf_program__attach_iter', 'cdecl'):
-    bpf_program__attach_iter = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__attach_iter', 'cdecl'):
+    bpf_program__attach_iter = _libs['./libbpf.so.1'].get(
         'bpf_program__attach_iter', 'cdecl')
     bpf_program__attach_iter.argtypes = [POINTER(struct_bpf_program),
         POINTER(struct_bpf_iter_attach_opts)]
     bpf_program__attach_iter.restype = POINTER(struct_bpf_link)
-if _libs['libbpf.so.1'].has('bpf_program__type', 'cdecl'):
-    bpf_program__type = _libs['libbpf.so.1'].get('bpf_program__type', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_program__type', 'cdecl'):
+    bpf_program__type = _libs['./libbpf.so.1'].get('bpf_program__type', 'cdecl'
+        )
     bpf_program__type.argtypes = [POINTER(struct_bpf_program)]
     bpf_program__type.restype = enum_bpf_prog_type
-if _libs['libbpf.so.1'].has('bpf_program__set_type', 'cdecl'):
-    bpf_program__set_type = _libs['libbpf.so.1'].get('bpf_program__set_type',
+if _libs['./libbpf.so.1'].has('bpf_program__set_type', 'cdecl'):
+    bpf_program__set_type = _libs['./libbpf.so.1'].get('bpf_program__set_type',
         'cdecl')
     bpf_program__set_type.argtypes = [POINTER(struct_bpf_program),
         enum_bpf_prog_type]
     bpf_program__set_type.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_program__expected_attach_type', 'cdecl'):
-    bpf_program__expected_attach_type = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__expected_attach_type', 'cdecl'):
+    bpf_program__expected_attach_type = _libs['./libbpf.so.1'].get(
         'bpf_program__expected_attach_type', 'cdecl')
     bpf_program__expected_attach_type.argtypes = [POINTER(struct_bpf_program)]
     bpf_program__expected_attach_type.restype = enum_bpf_attach_type
-if _libs['libbpf.so.1'].has('bpf_program__set_expected_attach_type', 'cdecl'):
-    bpf_program__set_expected_attach_type = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__set_expected_attach_type', 'cdecl'
+    ):
+    bpf_program__set_expected_attach_type = _libs['./libbpf.so.1'].get(
         'bpf_program__set_expected_attach_type', 'cdecl')
     bpf_program__set_expected_attach_type.argtypes = [POINTER(
         struct_bpf_program), enum_bpf_attach_type]
     bpf_program__set_expected_attach_type.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_program__flags', 'cdecl'):
-    bpf_program__flags = _libs['libbpf.so.1'].get('bpf_program__flags', 'cdecl'
-        )
+if _libs['./libbpf.so.1'].has('bpf_program__flags', 'cdecl'):
+    bpf_program__flags = _libs['./libbpf.so.1'].get('bpf_program__flags',
+        'cdecl')
     bpf_program__flags.argtypes = [POINTER(struct_bpf_program)]
     bpf_program__flags.restype = __u32
-if _libs['libbpf.so.1'].has('bpf_program__set_flags', 'cdecl'):
-    bpf_program__set_flags = _libs['libbpf.so.1'].get('bpf_program__set_flags',
-        'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_program__set_flags', 'cdecl'):
+    bpf_program__set_flags = _libs['./libbpf.so.1'].get(
+        'bpf_program__set_flags', 'cdecl')
     bpf_program__set_flags.argtypes = [POINTER(struct_bpf_program), __u32]
     bpf_program__set_flags.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_program__log_level', 'cdecl'):
-    bpf_program__log_level = _libs['libbpf.so.1'].get('bpf_program__log_level',
-        'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_program__log_level', 'cdecl'):
+    bpf_program__log_level = _libs['./libbpf.so.1'].get(
+        'bpf_program__log_level', 'cdecl')
     bpf_program__log_level.argtypes = [POINTER(struct_bpf_program)]
     bpf_program__log_level.restype = __u32
-if _libs['libbpf.so.1'].has('bpf_program__set_log_level', 'cdecl'):
-    bpf_program__set_log_level = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__set_log_level', 'cdecl'):
+    bpf_program__set_log_level = _libs['./libbpf.so.1'].get(
         'bpf_program__set_log_level', 'cdecl')
     bpf_program__set_log_level.argtypes = [POINTER(struct_bpf_program), __u32]
     bpf_program__set_log_level.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_program__log_buf', 'cdecl'):
-    bpf_program__log_buf = _libs['libbpf.so.1'].get('bpf_program__log_buf',
+if _libs['./libbpf.so.1'].has('bpf_program__log_buf', 'cdecl'):
+    bpf_program__log_buf = _libs['./libbpf.so.1'].get('bpf_program__log_buf',
         'cdecl')
     bpf_program__log_buf.argtypes = [POINTER(struct_bpf_program), POINTER(
         c_size_t)]
     bpf_program__log_buf.restype = c_char_p
-if _libs['libbpf.so.1'].has('bpf_program__set_log_buf', 'cdecl'):
-    bpf_program__set_log_buf = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__set_log_buf', 'cdecl'):
+    bpf_program__set_log_buf = _libs['./libbpf.so.1'].get(
         'bpf_program__set_log_buf', 'cdecl')
     bpf_program__set_log_buf.argtypes = [POINTER(struct_bpf_program),
         String, c_size_t]
     bpf_program__set_log_buf.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_program__set_attach_target', 'cdecl'):
-    bpf_program__set_attach_target = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__func_info', 'cdecl'):
+    bpf_program__func_info = _libs['./libbpf.so.1'].get(
+        'bpf_program__func_info', 'cdecl')
+    bpf_program__func_info.argtypes = [POINTER(struct_bpf_program)]
+    bpf_program__func_info.restype = POINTER(struct_bpf_func_info)
+if _libs['./libbpf.so.1'].has('bpf_program__func_info_cnt', 'cdecl'):
+    bpf_program__func_info_cnt = _libs['./libbpf.so.1'].get(
+        'bpf_program__func_info_cnt', 'cdecl')
+    bpf_program__func_info_cnt.argtypes = [POINTER(struct_bpf_program)]
+    bpf_program__func_info_cnt.restype = __u32
+if _libs['./libbpf.so.1'].has('bpf_program__line_info', 'cdecl'):
+    bpf_program__line_info = _libs['./libbpf.so.1'].get(
+        'bpf_program__line_info', 'cdecl')
+    bpf_program__line_info.argtypes = [POINTER(struct_bpf_program)]
+    bpf_program__line_info.restype = POINTER(struct_bpf_line_info)
+if _libs['./libbpf.so.1'].has('bpf_program__line_info_cnt', 'cdecl'):
+    bpf_program__line_info_cnt = _libs['./libbpf.so.1'].get(
+        'bpf_program__line_info_cnt', 'cdecl')
+    bpf_program__line_info_cnt.argtypes = [POINTER(struct_bpf_program)]
+    bpf_program__line_info_cnt.restype = __u32
+if _libs['./libbpf.so.1'].has('bpf_program__set_attach_target', 'cdecl'):
+    bpf_program__set_attach_target = _libs['./libbpf.so.1'].get(
         'bpf_program__set_attach_target', 'cdecl')
     bpf_program__set_attach_target.argtypes = [POINTER(struct_bpf_program),
         c_int, String]
     bpf_program__set_attach_target.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_object__find_map_by_name', 'cdecl'):
-    bpf_object__find_map_by_name = _libs['libbpf.so.1'].get(
+
+
+class struct_bpf_prog_assoc_struct_ops_opts(Structure):
+    pass
+
+
+if _libs['./libbpf.so.1'].has('bpf_program__assoc_struct_ops', 'cdecl'):
+    bpf_program__assoc_struct_ops = _libs['./libbpf.so.1'].get(
+        'bpf_program__assoc_struct_ops', 'cdecl')
+    bpf_program__assoc_struct_ops.argtypes = [POINTER(struct_bpf_program),
+        POINTER(struct_bpf_map), POINTER(struct_bpf_prog_assoc_struct_ops_opts)
+        ]
+    bpf_program__assoc_struct_ops.restype = c_int
+if _libs['./libbpf.so.1'].has('bpf_object__find_map_by_name', 'cdecl'):
+    bpf_object__find_map_by_name = _libs['./libbpf.so.1'].get(
         'bpf_object__find_map_by_name', 'cdecl')
     bpf_object__find_map_by_name.argtypes = [POINTER(struct_bpf_object), String
         ]
     bpf_object__find_map_by_name.restype = POINTER(struct_bpf_map)
-if _libs['libbpf.so.1'].has('bpf_object__find_map_fd_by_name', 'cdecl'):
-    bpf_object__find_map_fd_by_name = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_object__find_map_fd_by_name', 'cdecl'):
+    bpf_object__find_map_fd_by_name = _libs['./libbpf.so.1'].get(
         'bpf_object__find_map_fd_by_name', 'cdecl')
     bpf_object__find_map_fd_by_name.argtypes = [POINTER(struct_bpf_object),
         String]
     bpf_object__find_map_fd_by_name.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_object__next_map', 'cdecl'):
-    bpf_object__next_map = _libs['libbpf.so.1'].get('bpf_object__next_map',
+if _libs['./libbpf.so.1'].has('bpf_object__next_map', 'cdecl'):
+    bpf_object__next_map = _libs['./libbpf.so.1'].get('bpf_object__next_map',
         'cdecl')
     bpf_object__next_map.argtypes = [POINTER(struct_bpf_object), POINTER(
         struct_bpf_map)]
     bpf_object__next_map.restype = POINTER(struct_bpf_map)
-if _libs['libbpf.so.1'].has('bpf_object__prev_map', 'cdecl'):
-    bpf_object__prev_map = _libs['libbpf.so.1'].get('bpf_object__prev_map',
+if _libs['./libbpf.so.1'].has('bpf_object__prev_map', 'cdecl'):
+    bpf_object__prev_map = _libs['./libbpf.so.1'].get('bpf_object__prev_map',
         'cdecl')
     bpf_object__prev_map.argtypes = [POINTER(struct_bpf_object), POINTER(
         struct_bpf_map)]
     bpf_object__prev_map.restype = POINTER(struct_bpf_map)
-if _libs['libbpf.so.1'].has('bpf_map__set_autocreate', 'cdecl'):
-    bpf_map__set_autocreate = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_map__set_autocreate', 'cdecl'):
+    bpf_map__set_autocreate = _libs['./libbpf.so.1'].get(
         'bpf_map__set_autocreate', 'cdecl')
     bpf_map__set_autocreate.argtypes = [POINTER(struct_bpf_map), c_bool]
     bpf_map__set_autocreate.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_map__autocreate', 'cdecl'):
-    bpf_map__autocreate = _libs['libbpf.so.1'].get('bpf_map__autocreate',
+if _libs['./libbpf.so.1'].has('bpf_map__autocreate', 'cdecl'):
+    bpf_map__autocreate = _libs['./libbpf.so.1'].get('bpf_map__autocreate',
         'cdecl')
     bpf_map__autocreate.argtypes = [POINTER(struct_bpf_map)]
     bpf_map__autocreate.restype = c_bool
-if _libs['libbpf.so.1'].has('bpf_map__fd', 'cdecl'):
-    bpf_map__fd = _libs['libbpf.so.1'].get('bpf_map__fd', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_map__set_autoattach', 'cdecl'):
+    bpf_map__set_autoattach = _libs['./libbpf.so.1'].get(
+        'bpf_map__set_autoattach', 'cdecl')
+    bpf_map__set_autoattach.argtypes = [POINTER(struct_bpf_map), c_bool]
+    bpf_map__set_autoattach.restype = c_int
+if _libs['./libbpf.so.1'].has('bpf_map__autoattach', 'cdecl'):
+    bpf_map__autoattach = _libs['./libbpf.so.1'].get('bpf_map__autoattach',
+        'cdecl')
+    bpf_map__autoattach.argtypes = [POINTER(struct_bpf_map)]
+    bpf_map__autoattach.restype = c_bool
+if _libs['./libbpf.so.1'].has('bpf_map__fd', 'cdecl'):
+    bpf_map__fd = _libs['./libbpf.so.1'].get('bpf_map__fd', 'cdecl')
     bpf_map__fd.argtypes = [POINTER(struct_bpf_map)]
     bpf_map__fd.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_map__reuse_fd', 'cdecl'):
-    bpf_map__reuse_fd = _libs['libbpf.so.1'].get('bpf_map__reuse_fd', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_map__reuse_fd', 'cdecl'):
+    bpf_map__reuse_fd = _libs['./libbpf.so.1'].get('bpf_map__reuse_fd', 'cdecl'
+        )
     bpf_map__reuse_fd.argtypes = [POINTER(struct_bpf_map), c_int]
     bpf_map__reuse_fd.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_map__name', 'cdecl'):
-    bpf_map__name = _libs['libbpf.so.1'].get('bpf_map__name', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_map__name', 'cdecl'):
+    bpf_map__name = _libs['./libbpf.so.1'].get('bpf_map__name', 'cdecl')
     bpf_map__name.argtypes = [POINTER(struct_bpf_map)]
     bpf_map__name.restype = c_char_p
-if _libs['libbpf.so.1'].has('bpf_map__type', 'cdecl'):
-    bpf_map__type = _libs['libbpf.so.1'].get('bpf_map__type', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_map__type', 'cdecl'):
+    bpf_map__type = _libs['./libbpf.so.1'].get('bpf_map__type', 'cdecl')
     bpf_map__type.argtypes = [POINTER(struct_bpf_map)]
     bpf_map__type.restype = enum_bpf_map_type
-if _libs['libbpf.so.1'].has('bpf_map__set_type', 'cdecl'):
-    bpf_map__set_type = _libs['libbpf.so.1'].get('bpf_map__set_type', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_map__set_type', 'cdecl'):
+    bpf_map__set_type = _libs['./libbpf.so.1'].get('bpf_map__set_type', 'cdecl'
+        )
     bpf_map__set_type.argtypes = [POINTER(struct_bpf_map), enum_bpf_map_type]
     bpf_map__set_type.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_map__max_entries', 'cdecl'):
-    bpf_map__max_entries = _libs['libbpf.so.1'].get('bpf_map__max_entries',
+if _libs['./libbpf.so.1'].has('bpf_map__max_entries', 'cdecl'):
+    bpf_map__max_entries = _libs['./libbpf.so.1'].get('bpf_map__max_entries',
         'cdecl')
     bpf_map__max_entries.argtypes = [POINTER(struct_bpf_map)]
     bpf_map__max_entries.restype = __u32
-if _libs['libbpf.so.1'].has('bpf_map__set_max_entries', 'cdecl'):
-    bpf_map__set_max_entries = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_map__set_max_entries', 'cdecl'):
+    bpf_map__set_max_entries = _libs['./libbpf.so.1'].get(
         'bpf_map__set_max_entries', 'cdecl')
     bpf_map__set_max_entries.argtypes = [POINTER(struct_bpf_map), __u32]
     bpf_map__set_max_entries.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_map__map_flags', 'cdecl'):
-    bpf_map__map_flags = _libs['libbpf.so.1'].get('bpf_map__map_flags', 'cdecl'
-        )
+if _libs['./libbpf.so.1'].has('bpf_map__map_flags', 'cdecl'):
+    bpf_map__map_flags = _libs['./libbpf.so.1'].get('bpf_map__map_flags',
+        'cdecl')
     bpf_map__map_flags.argtypes = [POINTER(struct_bpf_map)]
     bpf_map__map_flags.restype = __u32
-if _libs['libbpf.so.1'].has('bpf_map__set_map_flags', 'cdecl'):
-    bpf_map__set_map_flags = _libs['libbpf.so.1'].get('bpf_map__set_map_flags',
-        'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_map__set_map_flags', 'cdecl'):
+    bpf_map__set_map_flags = _libs['./libbpf.so.1'].get(
+        'bpf_map__set_map_flags', 'cdecl')
     bpf_map__set_map_flags.argtypes = [POINTER(struct_bpf_map), __u32]
     bpf_map__set_map_flags.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_map__numa_node', 'cdecl'):
-    bpf_map__numa_node = _libs['libbpf.so.1'].get('bpf_map__numa_node', 'cdecl'
-        )
+if _libs['./libbpf.so.1'].has('bpf_map__numa_node', 'cdecl'):
+    bpf_map__numa_node = _libs['./libbpf.so.1'].get('bpf_map__numa_node',
+        'cdecl')
     bpf_map__numa_node.argtypes = [POINTER(struct_bpf_map)]
     bpf_map__numa_node.restype = __u32
-if _libs['libbpf.so.1'].has('bpf_map__set_numa_node', 'cdecl'):
-    bpf_map__set_numa_node = _libs['libbpf.so.1'].get('bpf_map__set_numa_node',
-        'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_map__set_numa_node', 'cdecl'):
+    bpf_map__set_numa_node = _libs['./libbpf.so.1'].get(
+        'bpf_map__set_numa_node', 'cdecl')
     bpf_map__set_numa_node.argtypes = [POINTER(struct_bpf_map), __u32]
     bpf_map__set_numa_node.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_map__key_size', 'cdecl'):
-    bpf_map__key_size = _libs['libbpf.so.1'].get('bpf_map__key_size', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_map__key_size', 'cdecl'):
+    bpf_map__key_size = _libs['./libbpf.so.1'].get('bpf_map__key_size', 'cdecl'
+        )
     bpf_map__key_size.argtypes = [POINTER(struct_bpf_map)]
     bpf_map__key_size.restype = __u32
-if _libs['libbpf.so.1'].has('bpf_map__set_key_size', 'cdecl'):
-    bpf_map__set_key_size = _libs['libbpf.so.1'].get('bpf_map__set_key_size',
+if _libs['./libbpf.so.1'].has('bpf_map__set_key_size', 'cdecl'):
+    bpf_map__set_key_size = _libs['./libbpf.so.1'].get('bpf_map__set_key_size',
         'cdecl')
     bpf_map__set_key_size.argtypes = [POINTER(struct_bpf_map), __u32]
     bpf_map__set_key_size.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_map__value_size', 'cdecl'):
-    bpf_map__value_size = _libs['libbpf.so.1'].get('bpf_map__value_size',
+if _libs['./libbpf.so.1'].has('bpf_map__value_size', 'cdecl'):
+    bpf_map__value_size = _libs['./libbpf.so.1'].get('bpf_map__value_size',
         'cdecl')
     bpf_map__value_size.argtypes = [POINTER(struct_bpf_map)]
     bpf_map__value_size.restype = __u32
-if _libs['libbpf.so.1'].has('bpf_map__set_value_size', 'cdecl'):
-    bpf_map__set_value_size = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_map__set_value_size', 'cdecl'):
+    bpf_map__set_value_size = _libs['./libbpf.so.1'].get(
         'bpf_map__set_value_size', 'cdecl')
     bpf_map__set_value_size.argtypes = [POINTER(struct_bpf_map), __u32]
     bpf_map__set_value_size.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_map__btf_key_type_id', 'cdecl'):
-    bpf_map__btf_key_type_id = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_map__btf_key_type_id', 'cdecl'):
+    bpf_map__btf_key_type_id = _libs['./libbpf.so.1'].get(
         'bpf_map__btf_key_type_id', 'cdecl')
     bpf_map__btf_key_type_id.argtypes = [POINTER(struct_bpf_map)]
     bpf_map__btf_key_type_id.restype = __u32
-if _libs['libbpf.so.1'].has('bpf_map__btf_value_type_id', 'cdecl'):
-    bpf_map__btf_value_type_id = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_map__btf_value_type_id', 'cdecl'):
+    bpf_map__btf_value_type_id = _libs['./libbpf.so.1'].get(
         'bpf_map__btf_value_type_id', 'cdecl')
     bpf_map__btf_value_type_id.argtypes = [POINTER(struct_bpf_map)]
     bpf_map__btf_value_type_id.restype = __u32
-if _libs['libbpf.so.1'].has('bpf_map__ifindex', 'cdecl'):
-    bpf_map__ifindex = _libs['libbpf.so.1'].get('bpf_map__ifindex', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_map__ifindex', 'cdecl'):
+    bpf_map__ifindex = _libs['./libbpf.so.1'].get('bpf_map__ifindex', 'cdecl')
     bpf_map__ifindex.argtypes = [POINTER(struct_bpf_map)]
     bpf_map__ifindex.restype = __u32
-if _libs['libbpf.so.1'].has('bpf_map__set_ifindex', 'cdecl'):
-    bpf_map__set_ifindex = _libs['libbpf.so.1'].get('bpf_map__set_ifindex',
+if _libs['./libbpf.so.1'].has('bpf_map__set_ifindex', 'cdecl'):
+    bpf_map__set_ifindex = _libs['./libbpf.so.1'].get('bpf_map__set_ifindex',
         'cdecl')
     bpf_map__set_ifindex.argtypes = [POINTER(struct_bpf_map), __u32]
     bpf_map__set_ifindex.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_map__map_extra', 'cdecl'):
-    bpf_map__map_extra = _libs['libbpf.so.1'].get('bpf_map__map_extra', 'cdecl'
-        )
+if _libs['./libbpf.so.1'].has('bpf_map__map_extra', 'cdecl'):
+    bpf_map__map_extra = _libs['./libbpf.so.1'].get('bpf_map__map_extra',
+        'cdecl')
     bpf_map__map_extra.argtypes = [POINTER(struct_bpf_map)]
     bpf_map__map_extra.restype = __u64
-if _libs['libbpf.so.1'].has('bpf_map__set_map_extra', 'cdecl'):
-    bpf_map__set_map_extra = _libs['libbpf.so.1'].get('bpf_map__set_map_extra',
-        'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_map__set_map_extra', 'cdecl'):
+    bpf_map__set_map_extra = _libs['./libbpf.so.1'].get(
+        'bpf_map__set_map_extra', 'cdecl')
     bpf_map__set_map_extra.argtypes = [POINTER(struct_bpf_map), __u64]
     bpf_map__set_map_extra.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_map__set_initial_value', 'cdecl'):
-    bpf_map__set_initial_value = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_map__set_initial_value', 'cdecl'):
+    bpf_map__set_initial_value = _libs['./libbpf.so.1'].get(
         'bpf_map__set_initial_value', 'cdecl')
     bpf_map__set_initial_value.argtypes = [POINTER(struct_bpf_map), POINTER
         (None), c_size_t]
     bpf_map__set_initial_value.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_map__initial_value', 'cdecl'):
-    bpf_map__initial_value = _libs['libbpf.so.1'].get('bpf_map__initial_value',
-        'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_map__initial_value', 'cdecl'):
+    bpf_map__initial_value = _libs['./libbpf.so.1'].get(
+        'bpf_map__initial_value', 'cdecl')
     bpf_map__initial_value.argtypes = [POINTER(struct_bpf_map), POINTER(
         c_size_t)]
     bpf_map__initial_value.restype = POINTER(c_ubyte)
     bpf_map__initial_value.errcheck = lambda v, *a: cast(v, c_void_p)
-if _libs['libbpf.so.1'].has('bpf_map__is_internal', 'cdecl'):
-    bpf_map__is_internal = _libs['libbpf.so.1'].get('bpf_map__is_internal',
+if _libs['./libbpf.so.1'].has('bpf_map__is_internal', 'cdecl'):
+    bpf_map__is_internal = _libs['./libbpf.so.1'].get('bpf_map__is_internal',
         'cdecl')
     bpf_map__is_internal.argtypes = [POINTER(struct_bpf_map)]
     bpf_map__is_internal.restype = c_bool
-if _libs['libbpf.so.1'].has('bpf_map__set_pin_path', 'cdecl'):
-    bpf_map__set_pin_path = _libs['libbpf.so.1'].get('bpf_map__set_pin_path',
+if _libs['./libbpf.so.1'].has('bpf_map__set_pin_path', 'cdecl'):
+    bpf_map__set_pin_path = _libs['./libbpf.so.1'].get('bpf_map__set_pin_path',
         'cdecl')
     bpf_map__set_pin_path.argtypes = [POINTER(struct_bpf_map), String]
     bpf_map__set_pin_path.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_map__pin_path', 'cdecl'):
-    bpf_map__pin_path = _libs['libbpf.so.1'].get('bpf_map__pin_path', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_map__pin_path', 'cdecl'):
+    bpf_map__pin_path = _libs['./libbpf.so.1'].get('bpf_map__pin_path', 'cdecl'
+        )
     bpf_map__pin_path.argtypes = [POINTER(struct_bpf_map)]
     bpf_map__pin_path.restype = c_char_p
-if _libs['libbpf.so.1'].has('bpf_map__is_pinned', 'cdecl'):
-    bpf_map__is_pinned = _libs['libbpf.so.1'].get('bpf_map__is_pinned', 'cdecl'
-        )
+if _libs['./libbpf.so.1'].has('bpf_map__is_pinned', 'cdecl'):
+    bpf_map__is_pinned = _libs['./libbpf.so.1'].get('bpf_map__is_pinned',
+        'cdecl')
     bpf_map__is_pinned.argtypes = [POINTER(struct_bpf_map)]
     bpf_map__is_pinned.restype = c_bool
-if _libs['libbpf.so.1'].has('bpf_map__pin', 'cdecl'):
-    bpf_map__pin = _libs['libbpf.so.1'].get('bpf_map__pin', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_map__pin', 'cdecl'):
+    bpf_map__pin = _libs['./libbpf.so.1'].get('bpf_map__pin', 'cdecl')
     bpf_map__pin.argtypes = [POINTER(struct_bpf_map), String]
     bpf_map__pin.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_map__unpin', 'cdecl'):
-    bpf_map__unpin = _libs['libbpf.so.1'].get('bpf_map__unpin', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_map__unpin', 'cdecl'):
+    bpf_map__unpin = _libs['./libbpf.so.1'].get('bpf_map__unpin', 'cdecl')
     bpf_map__unpin.argtypes = [POINTER(struct_bpf_map), String]
     bpf_map__unpin.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_map__set_inner_map_fd', 'cdecl'):
-    bpf_map__set_inner_map_fd = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_map__set_inner_map_fd', 'cdecl'):
+    bpf_map__set_inner_map_fd = _libs['./libbpf.so.1'].get(
         'bpf_map__set_inner_map_fd', 'cdecl')
     bpf_map__set_inner_map_fd.argtypes = [POINTER(struct_bpf_map), c_int]
     bpf_map__set_inner_map_fd.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_map__inner_map', 'cdecl'):
-    bpf_map__inner_map = _libs['libbpf.so.1'].get('bpf_map__inner_map', 'cdecl'
-        )
+if _libs['./libbpf.so.1'].has('bpf_map__inner_map', 'cdecl'):
+    bpf_map__inner_map = _libs['./libbpf.so.1'].get('bpf_map__inner_map',
+        'cdecl')
     bpf_map__inner_map.argtypes = [POINTER(struct_bpf_map)]
     bpf_map__inner_map.restype = POINTER(struct_bpf_map)
-if _libs['libbpf.so.1'].has('bpf_map__lookup_elem', 'cdecl'):
-    bpf_map__lookup_elem = _libs['libbpf.so.1'].get('bpf_map__lookup_elem',
+if _libs['./libbpf.so.1'].has('bpf_map__lookup_elem', 'cdecl'):
+    bpf_map__lookup_elem = _libs['./libbpf.so.1'].get('bpf_map__lookup_elem',
         'cdecl')
     bpf_map__lookup_elem.argtypes = [POINTER(struct_bpf_map), POINTER(None),
         c_size_t, POINTER(None), c_size_t, __u64]
     bpf_map__lookup_elem.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_map__update_elem', 'cdecl'):
-    bpf_map__update_elem = _libs['libbpf.so.1'].get('bpf_map__update_elem',
+if _libs['./libbpf.so.1'].has('bpf_map__update_elem', 'cdecl'):
+    bpf_map__update_elem = _libs['./libbpf.so.1'].get('bpf_map__update_elem',
         'cdecl')
     bpf_map__update_elem.argtypes = [POINTER(struct_bpf_map), POINTER(None),
         c_size_t, POINTER(None), c_size_t, __u64]
     bpf_map__update_elem.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_map__delete_elem', 'cdecl'):
-    bpf_map__delete_elem = _libs['libbpf.so.1'].get('bpf_map__delete_elem',
+if _libs['./libbpf.so.1'].has('bpf_map__delete_elem', 'cdecl'):
+    bpf_map__delete_elem = _libs['./libbpf.so.1'].get('bpf_map__delete_elem',
         'cdecl')
     bpf_map__delete_elem.argtypes = [POINTER(struct_bpf_map), POINTER(None),
         c_size_t, __u64]
     bpf_map__delete_elem.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_map__lookup_and_delete_elem', 'cdecl'):
-    bpf_map__lookup_and_delete_elem = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_map__lookup_and_delete_elem', 'cdecl'):
+    bpf_map__lookup_and_delete_elem = _libs['./libbpf.so.1'].get(
         'bpf_map__lookup_and_delete_elem', 'cdecl')
     bpf_map__lookup_and_delete_elem.argtypes = [POINTER(struct_bpf_map),
         POINTER(None), c_size_t, POINTER(None), c_size_t, __u64]
     bpf_map__lookup_and_delete_elem.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_map__get_next_key', 'cdecl'):
-    bpf_map__get_next_key = _libs['libbpf.so.1'].get('bpf_map__get_next_key',
+if _libs['./libbpf.so.1'].has('bpf_map__get_next_key', 'cdecl'):
+    bpf_map__get_next_key = _libs['./libbpf.so.1'].get('bpf_map__get_next_key',
         'cdecl')
     bpf_map__get_next_key.argtypes = [POINTER(struct_bpf_map), POINTER(None
         ), POINTER(None), c_size_t]
     bpf_map__get_next_key.restype = c_int
+if _libs['./libbpf.so.1'].has('bpf_map__set_exclusive_program', 'cdecl'):
+    bpf_map__set_exclusive_program = _libs['./libbpf.so.1'].get(
+        'bpf_map__set_exclusive_program', 'cdecl')
+    bpf_map__set_exclusive_program.argtypes = [POINTER(struct_bpf_map),
+        POINTER(struct_bpf_program)]
+    bpf_map__set_exclusive_program.restype = c_int
+if _libs['./libbpf.so.1'].has('bpf_map__exclusive_program', 'cdecl'):
+    bpf_map__exclusive_program = _libs['./libbpf.so.1'].get(
+        'bpf_map__exclusive_program', 'cdecl')
+    bpf_map__exclusive_program.argtypes = [POINTER(struct_bpf_map)]
+    bpf_map__exclusive_program.restype = POINTER(struct_bpf_program)
 
 
 class struct_bpf_xdp_set_link_opts(Structure):
@@ -2160,28 +2325,29 @@ struct_bpf_xdp_query_opts._fields_ = [('sz', c_size_t), ('prog_id', __u32),
     ('drv_prog_id', __u32), ('hw_prog_id', __u32), ('skb_prog_id', __u32),
     ('attach_mode', __u8), ('feature_flags', __u64), ('xdp_zc_max_segs', __u32)
     ]
-if _libs['libbpf.so.1'].has('bpf_xdp_attach', 'cdecl'):
-    bpf_xdp_attach = _libs['libbpf.so.1'].get('bpf_xdp_attach', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_xdp_attach', 'cdecl'):
+    bpf_xdp_attach = _libs['./libbpf.so.1'].get('bpf_xdp_attach', 'cdecl')
     bpf_xdp_attach.argtypes = [c_int, c_int, __u32, POINTER(
         struct_bpf_xdp_attach_opts)]
     bpf_xdp_attach.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_xdp_detach', 'cdecl'):
-    bpf_xdp_detach = _libs['libbpf.so.1'].get('bpf_xdp_detach', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_xdp_detach', 'cdecl'):
+    bpf_xdp_detach = _libs['./libbpf.so.1'].get('bpf_xdp_detach', 'cdecl')
     bpf_xdp_detach.argtypes = [c_int, __u32, POINTER(
         struct_bpf_xdp_attach_opts)]
     bpf_xdp_detach.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_xdp_query', 'cdecl'):
-    bpf_xdp_query = _libs['libbpf.so.1'].get('bpf_xdp_query', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_xdp_query', 'cdecl'):
+    bpf_xdp_query = _libs['./libbpf.so.1'].get('bpf_xdp_query', 'cdecl')
     bpf_xdp_query.argtypes = [c_int, c_int, POINTER(struct_bpf_xdp_query_opts)]
     bpf_xdp_query.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_xdp_query_id', 'cdecl'):
-    bpf_xdp_query_id = _libs['libbpf.so.1'].get('bpf_xdp_query_id', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_xdp_query_id', 'cdecl'):
+    bpf_xdp_query_id = _libs['./libbpf.so.1'].get('bpf_xdp_query_id', 'cdecl')
     bpf_xdp_query_id.argtypes = [c_int, c_int, POINTER(__u32)]
     bpf_xdp_query_id.restype = c_int
 enum_bpf_tc_attach_point = c_int
 BPF_TC_INGRESS = 1 << 0
 BPF_TC_EGRESS = 1 << 1
 BPF_TC_CUSTOM = 1 << 2
+BPF_TC_QDISC = 1 << 3
 enum_bpf_tc_flags = c_int
 BPF_TC_F_REPLACE = 1 << 0
 
@@ -2191,9 +2357,10 @@ class struct_bpf_tc_hook(Structure):
 
 
 struct_bpf_tc_hook.__slots__ = ['sz', 'ifindex', 'attach_point', 'parent',
-    'unnamed_bpf_tc_hook_1']
+    'handle', 'qdisc', 'unnamed_bpf_tc_hook_1']
 struct_bpf_tc_hook._fields_ = [('sz', c_size_t), ('ifindex', c_int), (
-    'attach_point', enum_bpf_tc_attach_point), ('parent', __u32)]
+    'attach_point', enum_bpf_tc_attach_point), ('parent', __u32), ('handle',
+    __u32), ('qdisc', String)]
 
 
 class struct_bpf_tc_opts(Structure):
@@ -2205,28 +2372,28 @@ struct_bpf_tc_opts.__slots__ = ['sz', 'prog_fd', 'flags', 'prog_id',
 struct_bpf_tc_opts._fields_ = [('sz', c_size_t), ('prog_fd', c_int), (
     'flags', __u32), ('prog_id', __u32), ('handle', __u32), ('priority', __u32)
     ]
-if _libs['libbpf.so.1'].has('bpf_tc_hook_create', 'cdecl'):
-    bpf_tc_hook_create = _libs['libbpf.so.1'].get('bpf_tc_hook_create', 'cdecl'
-        )
+if _libs['./libbpf.so.1'].has('bpf_tc_hook_create', 'cdecl'):
+    bpf_tc_hook_create = _libs['./libbpf.so.1'].get('bpf_tc_hook_create',
+        'cdecl')
     bpf_tc_hook_create.argtypes = [POINTER(struct_bpf_tc_hook)]
     bpf_tc_hook_create.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_tc_hook_destroy', 'cdecl'):
-    bpf_tc_hook_destroy = _libs['libbpf.so.1'].get('bpf_tc_hook_destroy',
+if _libs['./libbpf.so.1'].has('bpf_tc_hook_destroy', 'cdecl'):
+    bpf_tc_hook_destroy = _libs['./libbpf.so.1'].get('bpf_tc_hook_destroy',
         'cdecl')
     bpf_tc_hook_destroy.argtypes = [POINTER(struct_bpf_tc_hook)]
     bpf_tc_hook_destroy.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_tc_attach', 'cdecl'):
-    bpf_tc_attach = _libs['libbpf.so.1'].get('bpf_tc_attach', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_tc_attach', 'cdecl'):
+    bpf_tc_attach = _libs['./libbpf.so.1'].get('bpf_tc_attach', 'cdecl')
     bpf_tc_attach.argtypes = [POINTER(struct_bpf_tc_hook), POINTER(
         struct_bpf_tc_opts)]
     bpf_tc_attach.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_tc_detach', 'cdecl'):
-    bpf_tc_detach = _libs['libbpf.so.1'].get('bpf_tc_detach', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_tc_detach', 'cdecl'):
+    bpf_tc_detach = _libs['./libbpf.so.1'].get('bpf_tc_detach', 'cdecl')
     bpf_tc_detach.argtypes = [POINTER(struct_bpf_tc_hook), POINTER(
         struct_bpf_tc_opts)]
     bpf_tc_detach.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_tc_query', 'cdecl'):
-    bpf_tc_query = _libs['libbpf.so.1'].get('bpf_tc_query', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_tc_query', 'cdecl'):
+    bpf_tc_query = _libs['./libbpf.so.1'].get('bpf_tc_query', 'cdecl')
     bpf_tc_query.argtypes = [POINTER(struct_bpf_tc_hook), POINTER(
         struct_bpf_tc_opts)]
     bpf_tc_query.restype = c_int
@@ -2254,65 +2421,77 @@ class struct_ring_buffer_opts(Structure):
 
 struct_ring_buffer_opts.__slots__ = ['sz']
 struct_ring_buffer_opts._fields_ = [('sz', c_size_t)]
-if _libs['libbpf.so.1'].has('ring_buffer__new', 'cdecl'):
-    ring_buffer__new = _libs['libbpf.so.1'].get('ring_buffer__new', 'cdecl')
+if _libs['./libbpf.so.1'].has('ring_buffer__new', 'cdecl'):
+    ring_buffer__new = _libs['./libbpf.so.1'].get('ring_buffer__new', 'cdecl')
     ring_buffer__new.argtypes = [c_int, ring_buffer_sample_fn, POINTER(None
         ), POINTER(struct_ring_buffer_opts)]
     ring_buffer__new.restype = POINTER(struct_ring_buffer)
-if _libs['libbpf.so.1'].has('ring_buffer__free', 'cdecl'):
-    ring_buffer__free = _libs['libbpf.so.1'].get('ring_buffer__free', 'cdecl')
+if _libs['./libbpf.so.1'].has('ring_buffer__free', 'cdecl'):
+    ring_buffer__free = _libs['./libbpf.so.1'].get('ring_buffer__free', 'cdecl'
+        )
     ring_buffer__free.argtypes = [POINTER(struct_ring_buffer)]
     ring_buffer__free.restype = None
-if _libs['libbpf.so.1'].has('ring_buffer__add', 'cdecl'):
-    ring_buffer__add = _libs['libbpf.so.1'].get('ring_buffer__add', 'cdecl')
+if _libs['./libbpf.so.1'].has('ring_buffer__add', 'cdecl'):
+    ring_buffer__add = _libs['./libbpf.so.1'].get('ring_buffer__add', 'cdecl')
     ring_buffer__add.argtypes = [POINTER(struct_ring_buffer), c_int,
         ring_buffer_sample_fn, POINTER(None)]
     ring_buffer__add.restype = c_int
-if _libs['libbpf.so.1'].has('ring_buffer__poll', 'cdecl'):
-    ring_buffer__poll = _libs['libbpf.so.1'].get('ring_buffer__poll', 'cdecl')
+if _libs['./libbpf.so.1'].has('ring_buffer__poll', 'cdecl'):
+    ring_buffer__poll = _libs['./libbpf.so.1'].get('ring_buffer__poll', 'cdecl'
+        )
     ring_buffer__poll.argtypes = [POINTER(struct_ring_buffer), c_int]
     ring_buffer__poll.restype = c_int
-if _libs['libbpf.so.1'].has('ring_buffer__consume', 'cdecl'):
-    ring_buffer__consume = _libs['libbpf.so.1'].get('ring_buffer__consume',
+if _libs['./libbpf.so.1'].has('ring_buffer__consume', 'cdecl'):
+    ring_buffer__consume = _libs['./libbpf.so.1'].get('ring_buffer__consume',
         'cdecl')
     ring_buffer__consume.argtypes = [POINTER(struct_ring_buffer)]
     ring_buffer__consume.restype = c_int
-if _libs['libbpf.so.1'].has('ring_buffer__epoll_fd', 'cdecl'):
-    ring_buffer__epoll_fd = _libs['libbpf.so.1'].get('ring_buffer__epoll_fd',
+if _libs['./libbpf.so.1'].has('ring_buffer__consume_n', 'cdecl'):
+    ring_buffer__consume_n = _libs['./libbpf.so.1'].get(
+        'ring_buffer__consume_n', 'cdecl')
+    ring_buffer__consume_n.argtypes = [POINTER(struct_ring_buffer), c_size_t]
+    ring_buffer__consume_n.restype = c_int
+if _libs['./libbpf.so.1'].has('ring_buffer__epoll_fd', 'cdecl'):
+    ring_buffer__epoll_fd = _libs['./libbpf.so.1'].get('ring_buffer__epoll_fd',
         'cdecl')
     ring_buffer__epoll_fd.argtypes = [POINTER(struct_ring_buffer)]
     ring_buffer__epoll_fd.restype = c_int
-if _libs['libbpf.so.1'].has('ring_buffer__ring', 'cdecl'):
-    ring_buffer__ring = _libs['libbpf.so.1'].get('ring_buffer__ring', 'cdecl')
+if _libs['./libbpf.so.1'].has('ring_buffer__ring', 'cdecl'):
+    ring_buffer__ring = _libs['./libbpf.so.1'].get('ring_buffer__ring', 'cdecl'
+        )
     ring_buffer__ring.argtypes = [POINTER(struct_ring_buffer), c_uint]
     ring_buffer__ring.restype = POINTER(struct_ring)
-if _libs['libbpf.so.1'].has('ring__consumer_pos', 'cdecl'):
-    ring__consumer_pos = _libs['libbpf.so.1'].get('ring__consumer_pos', 'cdecl'
-        )
+if _libs['./libbpf.so.1'].has('ring__consumer_pos', 'cdecl'):
+    ring__consumer_pos = _libs['./libbpf.so.1'].get('ring__consumer_pos',
+        'cdecl')
     ring__consumer_pos.argtypes = [POINTER(struct_ring)]
     ring__consumer_pos.restype = c_ulong
-if _libs['libbpf.so.1'].has('ring__producer_pos', 'cdecl'):
-    ring__producer_pos = _libs['libbpf.so.1'].get('ring__producer_pos', 'cdecl'
-        )
+if _libs['./libbpf.so.1'].has('ring__producer_pos', 'cdecl'):
+    ring__producer_pos = _libs['./libbpf.so.1'].get('ring__producer_pos',
+        'cdecl')
     ring__producer_pos.argtypes = [POINTER(struct_ring)]
     ring__producer_pos.restype = c_ulong
-if _libs['libbpf.so.1'].has('ring__avail_data_size', 'cdecl'):
-    ring__avail_data_size = _libs['libbpf.so.1'].get('ring__avail_data_size',
+if _libs['./libbpf.so.1'].has('ring__avail_data_size', 'cdecl'):
+    ring__avail_data_size = _libs['./libbpf.so.1'].get('ring__avail_data_size',
         'cdecl')
     ring__avail_data_size.argtypes = [POINTER(struct_ring)]
     ring__avail_data_size.restype = c_size_t
-if _libs['libbpf.so.1'].has('ring__size', 'cdecl'):
-    ring__size = _libs['libbpf.so.1'].get('ring__size', 'cdecl')
+if _libs['./libbpf.so.1'].has('ring__size', 'cdecl'):
+    ring__size = _libs['./libbpf.so.1'].get('ring__size', 'cdecl')
     ring__size.argtypes = [POINTER(struct_ring)]
     ring__size.restype = c_size_t
-if _libs['libbpf.so.1'].has('ring__map_fd', 'cdecl'):
-    ring__map_fd = _libs['libbpf.so.1'].get('ring__map_fd', 'cdecl')
+if _libs['./libbpf.so.1'].has('ring__map_fd', 'cdecl'):
+    ring__map_fd = _libs['./libbpf.so.1'].get('ring__map_fd', 'cdecl')
     ring__map_fd.argtypes = [POINTER(struct_ring)]
     ring__map_fd.restype = c_int
-if _libs['libbpf.so.1'].has('ring__consume', 'cdecl'):
-    ring__consume = _libs['libbpf.so.1'].get('ring__consume', 'cdecl')
+if _libs['./libbpf.so.1'].has('ring__consume', 'cdecl'):
+    ring__consume = _libs['./libbpf.so.1'].get('ring__consume', 'cdecl')
     ring__consume.argtypes = [POINTER(struct_ring)]
     ring__consume.restype = c_int
+if _libs['./libbpf.so.1'].has('ring__consume_n', 'cdecl'):
+    ring__consume_n = _libs['./libbpf.so.1'].get('ring__consume_n', 'cdecl')
+    ring__consume_n.argtypes = [POINTER(struct_ring), c_size_t]
+    ring__consume_n.restype = c_int
 
 
 class struct_user_ring_buffer_opts(Structure):
@@ -2321,42 +2500,42 @@ class struct_user_ring_buffer_opts(Structure):
 
 struct_user_ring_buffer_opts.__slots__ = ['sz']
 struct_user_ring_buffer_opts._fields_ = [('sz', c_size_t)]
-if _libs['libbpf.so.1'].has('user_ring_buffer__new', 'cdecl'):
-    user_ring_buffer__new = _libs['libbpf.so.1'].get('user_ring_buffer__new',
+if _libs['./libbpf.so.1'].has('user_ring_buffer__new', 'cdecl'):
+    user_ring_buffer__new = _libs['./libbpf.so.1'].get('user_ring_buffer__new',
         'cdecl')
     user_ring_buffer__new.argtypes = [c_int, POINTER(
         struct_user_ring_buffer_opts)]
     user_ring_buffer__new.restype = POINTER(struct_user_ring_buffer)
-if _libs['libbpf.so.1'].has('user_ring_buffer__reserve', 'cdecl'):
-    user_ring_buffer__reserve = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('user_ring_buffer__reserve', 'cdecl'):
+    user_ring_buffer__reserve = _libs['./libbpf.so.1'].get(
         'user_ring_buffer__reserve', 'cdecl')
     user_ring_buffer__reserve.argtypes = [POINTER(struct_user_ring_buffer),
         __u32]
     user_ring_buffer__reserve.restype = POINTER(c_ubyte)
     user_ring_buffer__reserve.errcheck = lambda v, *a: cast(v, c_void_p)
-if _libs['libbpf.so.1'].has('user_ring_buffer__reserve_blocking', 'cdecl'):
-    user_ring_buffer__reserve_blocking = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('user_ring_buffer__reserve_blocking', 'cdecl'):
+    user_ring_buffer__reserve_blocking = _libs['./libbpf.so.1'].get(
         'user_ring_buffer__reserve_blocking', 'cdecl')
     user_ring_buffer__reserve_blocking.argtypes = [POINTER(
         struct_user_ring_buffer), __u32, c_int]
     user_ring_buffer__reserve_blocking.restype = POINTER(c_ubyte)
     user_ring_buffer__reserve_blocking.errcheck = lambda v, *a: cast(v,
         c_void_p)
-if _libs['libbpf.so.1'].has('user_ring_buffer__submit', 'cdecl'):
-    user_ring_buffer__submit = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('user_ring_buffer__submit', 'cdecl'):
+    user_ring_buffer__submit = _libs['./libbpf.so.1'].get(
         'user_ring_buffer__submit', 'cdecl')
     user_ring_buffer__submit.argtypes = [POINTER(struct_user_ring_buffer),
         POINTER(None)]
     user_ring_buffer__submit.restype = None
-if _libs['libbpf.so.1'].has('user_ring_buffer__discard', 'cdecl'):
-    user_ring_buffer__discard = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('user_ring_buffer__discard', 'cdecl'):
+    user_ring_buffer__discard = _libs['./libbpf.so.1'].get(
         'user_ring_buffer__discard', 'cdecl')
     user_ring_buffer__discard.argtypes = [POINTER(struct_user_ring_buffer),
         POINTER(None)]
     user_ring_buffer__discard.restype = None
-if _libs['libbpf.so.1'].has('user_ring_buffer__free', 'cdecl'):
-    user_ring_buffer__free = _libs['libbpf.so.1'].get('user_ring_buffer__free',
-        'cdecl')
+if _libs['./libbpf.so.1'].has('user_ring_buffer__free', 'cdecl'):
+    user_ring_buffer__free = _libs['./libbpf.so.1'].get(
+        'user_ring_buffer__free', 'cdecl')
     user_ring_buffer__free.argtypes = [POINTER(struct_user_ring_buffer)]
     user_ring_buffer__free.restype = None
 
@@ -2377,8 +2556,8 @@ class struct_perf_buffer_opts(Structure):
 struct_perf_buffer_opts.__slots__ = ['sz', 'sample_period',
     'unnamed_perf_buffer_opts_1']
 struct_perf_buffer_opts._fields_ = [('sz', c_size_t), ('sample_period', __u32)]
-if _libs['libbpf.so.1'].has('perf_buffer__new', 'cdecl'):
-    perf_buffer__new = _libs['libbpf.so.1'].get('perf_buffer__new', 'cdecl')
+if _libs['./libbpf.so.1'].has('perf_buffer__new', 'cdecl'):
+    perf_buffer__new = _libs['./libbpf.so.1'].get('perf_buffer__new', 'cdecl')
     perf_buffer__new.argtypes = [c_int, c_size_t, perf_buffer_sample_fn,
         perf_buffer_lost_fn, POINTER(None), POINTER(struct_perf_buffer_opts)]
     perf_buffer__new.restype = POINTER(struct_perf_buffer)
@@ -2407,49 +2586,51 @@ struct_perf_buffer_raw_opts._fields_ = [('sz', c_size_t), (
     ('padding_mock1_3', ctypes.c_char), ('padding_mock1_2', ctypes.c_char),
     ('padding_mock1_1', ctypes.c_char), ('padding_mock1_0', ctypes.c_char),
     ('cpu_cnt', c_int), ('cpus', POINTER(c_int)), ('map_keys', POINTER(c_int))]
-if _libs['libbpf.so.1'].has('perf_buffer__new_raw', 'cdecl'):
-    perf_buffer__new_raw = _libs['libbpf.so.1'].get('perf_buffer__new_raw',
+if _libs['./libbpf.so.1'].has('perf_buffer__new_raw', 'cdecl'):
+    perf_buffer__new_raw = _libs['./libbpf.so.1'].get('perf_buffer__new_raw',
         'cdecl')
     perf_buffer__new_raw.argtypes = [c_int, c_size_t, POINTER(
         struct_perf_event_attr), perf_buffer_event_fn, POINTER(None),
         POINTER(struct_perf_buffer_raw_opts)]
     perf_buffer__new_raw.restype = POINTER(struct_perf_buffer)
-if _libs['libbpf.so.1'].has('perf_buffer__free', 'cdecl'):
-    perf_buffer__free = _libs['libbpf.so.1'].get('perf_buffer__free', 'cdecl')
+if _libs['./libbpf.so.1'].has('perf_buffer__free', 'cdecl'):
+    perf_buffer__free = _libs['./libbpf.so.1'].get('perf_buffer__free', 'cdecl'
+        )
     perf_buffer__free.argtypes = [POINTER(struct_perf_buffer)]
     perf_buffer__free.restype = None
-if _libs['libbpf.so.1'].has('perf_buffer__epoll_fd', 'cdecl'):
-    perf_buffer__epoll_fd = _libs['libbpf.so.1'].get('perf_buffer__epoll_fd',
+if _libs['./libbpf.so.1'].has('perf_buffer__epoll_fd', 'cdecl'):
+    perf_buffer__epoll_fd = _libs['./libbpf.so.1'].get('perf_buffer__epoll_fd',
         'cdecl')
     perf_buffer__epoll_fd.argtypes = [POINTER(struct_perf_buffer)]
     perf_buffer__epoll_fd.restype = c_int
-if _libs['libbpf.so.1'].has('perf_buffer__poll', 'cdecl'):
-    perf_buffer__poll = _libs['libbpf.so.1'].get('perf_buffer__poll', 'cdecl')
+if _libs['./libbpf.so.1'].has('perf_buffer__poll', 'cdecl'):
+    perf_buffer__poll = _libs['./libbpf.so.1'].get('perf_buffer__poll', 'cdecl'
+        )
     perf_buffer__poll.argtypes = [POINTER(struct_perf_buffer), c_int]
     perf_buffer__poll.restype = c_int
-if _libs['libbpf.so.1'].has('perf_buffer__consume', 'cdecl'):
-    perf_buffer__consume = _libs['libbpf.so.1'].get('perf_buffer__consume',
+if _libs['./libbpf.so.1'].has('perf_buffer__consume', 'cdecl'):
+    perf_buffer__consume = _libs['./libbpf.so.1'].get('perf_buffer__consume',
         'cdecl')
     perf_buffer__consume.argtypes = [POINTER(struct_perf_buffer)]
     perf_buffer__consume.restype = c_int
-if _libs['libbpf.so.1'].has('perf_buffer__consume_buffer', 'cdecl'):
-    perf_buffer__consume_buffer = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('perf_buffer__consume_buffer', 'cdecl'):
+    perf_buffer__consume_buffer = _libs['./libbpf.so.1'].get(
         'perf_buffer__consume_buffer', 'cdecl')
     perf_buffer__consume_buffer.argtypes = [POINTER(struct_perf_buffer),
         c_size_t]
     perf_buffer__consume_buffer.restype = c_int
-if _libs['libbpf.so.1'].has('perf_buffer__buffer_cnt', 'cdecl'):
-    perf_buffer__buffer_cnt = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('perf_buffer__buffer_cnt', 'cdecl'):
+    perf_buffer__buffer_cnt = _libs['./libbpf.so.1'].get(
         'perf_buffer__buffer_cnt', 'cdecl')
     perf_buffer__buffer_cnt.argtypes = [POINTER(struct_perf_buffer)]
     perf_buffer__buffer_cnt.restype = c_size_t
-if _libs['libbpf.so.1'].has('perf_buffer__buffer_fd', 'cdecl'):
-    perf_buffer__buffer_fd = _libs['libbpf.so.1'].get('perf_buffer__buffer_fd',
-        'cdecl')
+if _libs['./libbpf.so.1'].has('perf_buffer__buffer_fd', 'cdecl'):
+    perf_buffer__buffer_fd = _libs['./libbpf.so.1'].get(
+        'perf_buffer__buffer_fd', 'cdecl')
     perf_buffer__buffer_fd.argtypes = [POINTER(struct_perf_buffer), c_size_t]
     perf_buffer__buffer_fd.restype = c_int
-if _libs['libbpf.so.1'].has('perf_buffer__buffer', 'cdecl'):
-    perf_buffer__buffer = _libs['libbpf.so.1'].get('perf_buffer__buffer',
+if _libs['./libbpf.so.1'].has('perf_buffer__buffer', 'cdecl'):
+    perf_buffer__buffer = _libs['./libbpf.so.1'].get('perf_buffer__buffer',
         'cdecl')
     perf_buffer__buffer.argtypes = [POINTER(struct_perf_buffer), c_int,
         POINTER(POINTER(None)), POINTER(c_size_t)]
@@ -2460,46 +2641,46 @@ class struct_bpf_prog_linfo(Structure):
     pass
 
 
-if _libs['libbpf.so.1'].has('bpf_prog_linfo__free', 'cdecl'):
-    bpf_prog_linfo__free = _libs['libbpf.so.1'].get('bpf_prog_linfo__free',
+if _libs['./libbpf.so.1'].has('bpf_prog_linfo__free', 'cdecl'):
+    bpf_prog_linfo__free = _libs['./libbpf.so.1'].get('bpf_prog_linfo__free',
         'cdecl')
     bpf_prog_linfo__free.argtypes = [POINTER(struct_bpf_prog_linfo)]
     bpf_prog_linfo__free.restype = None
-if _libs['libbpf.so.1'].has('bpf_prog_linfo__new', 'cdecl'):
-    bpf_prog_linfo__new = _libs['libbpf.so.1'].get('bpf_prog_linfo__new',
+if _libs['./libbpf.so.1'].has('bpf_prog_linfo__new', 'cdecl'):
+    bpf_prog_linfo__new = _libs['./libbpf.so.1'].get('bpf_prog_linfo__new',
         'cdecl')
     bpf_prog_linfo__new.argtypes = [POINTER(struct_bpf_prog_info)]
     bpf_prog_linfo__new.restype = POINTER(struct_bpf_prog_linfo)
-if _libs['libbpf.so.1'].has('bpf_prog_linfo__lfind_addr_func', 'cdecl'):
-    bpf_prog_linfo__lfind_addr_func = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_prog_linfo__lfind_addr_func', 'cdecl'):
+    bpf_prog_linfo__lfind_addr_func = _libs['./libbpf.so.1'].get(
         'bpf_prog_linfo__lfind_addr_func', 'cdecl')
     bpf_prog_linfo__lfind_addr_func.argtypes = [POINTER(
         struct_bpf_prog_linfo), __u64, __u32, __u32]
     bpf_prog_linfo__lfind_addr_func.restype = POINTER(struct_bpf_line_info)
-if _libs['libbpf.so.1'].has('bpf_prog_linfo__lfind', 'cdecl'):
-    bpf_prog_linfo__lfind = _libs['libbpf.so.1'].get('bpf_prog_linfo__lfind',
+if _libs['./libbpf.so.1'].has('bpf_prog_linfo__lfind', 'cdecl'):
+    bpf_prog_linfo__lfind = _libs['./libbpf.so.1'].get('bpf_prog_linfo__lfind',
         'cdecl')
     bpf_prog_linfo__lfind.argtypes = [POINTER(struct_bpf_prog_linfo), __u32,
         __u32]
     bpf_prog_linfo__lfind.restype = POINTER(struct_bpf_line_info)
-if _libs['libbpf.so.1'].has('libbpf_probe_bpf_prog_type', 'cdecl'):
-    libbpf_probe_bpf_prog_type = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('libbpf_probe_bpf_prog_type', 'cdecl'):
+    libbpf_probe_bpf_prog_type = _libs['./libbpf.so.1'].get(
         'libbpf_probe_bpf_prog_type', 'cdecl')
     libbpf_probe_bpf_prog_type.argtypes = [enum_bpf_prog_type, POINTER(None)]
     libbpf_probe_bpf_prog_type.restype = c_int
-if _libs['libbpf.so.1'].has('libbpf_probe_bpf_map_type', 'cdecl'):
-    libbpf_probe_bpf_map_type = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('libbpf_probe_bpf_map_type', 'cdecl'):
+    libbpf_probe_bpf_map_type = _libs['./libbpf.so.1'].get(
         'libbpf_probe_bpf_map_type', 'cdecl')
     libbpf_probe_bpf_map_type.argtypes = [enum_bpf_map_type, POINTER(None)]
     libbpf_probe_bpf_map_type.restype = c_int
-if _libs['libbpf.so.1'].has('libbpf_probe_bpf_helper', 'cdecl'):
-    libbpf_probe_bpf_helper = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('libbpf_probe_bpf_helper', 'cdecl'):
+    libbpf_probe_bpf_helper = _libs['./libbpf.so.1'].get(
         'libbpf_probe_bpf_helper', 'cdecl')
     libbpf_probe_bpf_helper.argtypes = [enum_bpf_prog_type,
         enum_bpf_func_id, POINTER(None)]
     libbpf_probe_bpf_helper.restype = c_int
-if _libs['libbpf.so.1'].has('libbpf_num_possible_cpus', 'cdecl'):
-    libbpf_num_possible_cpus = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('libbpf_num_possible_cpus', 'cdecl'):
+    libbpf_num_possible_cpus = _libs['./libbpf.so.1'].get(
         'libbpf_num_possible_cpus', 'cdecl')
     libbpf_num_possible_cpus.argtypes = []
     libbpf_num_possible_cpus.restype = c_int
@@ -2509,9 +2690,10 @@ class struct_bpf_map_skeleton(Structure):
     pass
 
 
-struct_bpf_map_skeleton.__slots__ = ['name', 'map', 'mmaped']
+struct_bpf_map_skeleton.__slots__ = ['name', 'map', 'mmaped', 'link']
 struct_bpf_map_skeleton._fields_ = [('name', String), ('map', POINTER(
-    POINTER(struct_bpf_map))), ('mmaped', POINTER(POINTER(None)))]
+    POINTER(struct_bpf_map))), ('mmaped', POINTER(POINTER(None))), ('link',
+    POINTER(POINTER(struct_bpf_link)))]
 
 
 class struct_bpf_prog_skeleton(Structure):
@@ -2535,31 +2717,31 @@ struct_bpf_object_skeleton._fields_ = [('sz', c_size_t), ('name', String),
     (struct_bpf_object))), ('map_cnt', c_int), ('map_skel_sz', c_int), (
     'maps', POINTER(struct_bpf_map_skeleton)), ('prog_cnt', c_int), (
     'prog_skel_sz', c_int), ('progs', POINTER(struct_bpf_prog_skeleton))]
-if _libs['libbpf.so.1'].has('bpf_object__open_skeleton', 'cdecl'):
-    bpf_object__open_skeleton = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_object__open_skeleton', 'cdecl'):
+    bpf_object__open_skeleton = _libs['./libbpf.so.1'].get(
         'bpf_object__open_skeleton', 'cdecl')
     bpf_object__open_skeleton.argtypes = [POINTER(
         struct_bpf_object_skeleton), POINTER(struct_bpf_object_open_opts)]
     bpf_object__open_skeleton.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_object__load_skeleton', 'cdecl'):
-    bpf_object__load_skeleton = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_object__load_skeleton', 'cdecl'):
+    bpf_object__load_skeleton = _libs['./libbpf.so.1'].get(
         'bpf_object__load_skeleton', 'cdecl')
     bpf_object__load_skeleton.argtypes = [POINTER(struct_bpf_object_skeleton)]
     bpf_object__load_skeleton.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_object__attach_skeleton', 'cdecl'):
-    bpf_object__attach_skeleton = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_object__attach_skeleton', 'cdecl'):
+    bpf_object__attach_skeleton = _libs['./libbpf.so.1'].get(
         'bpf_object__attach_skeleton', 'cdecl')
     bpf_object__attach_skeleton.argtypes = [POINTER(struct_bpf_object_skeleton)
         ]
     bpf_object__attach_skeleton.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_object__detach_skeleton', 'cdecl'):
-    bpf_object__detach_skeleton = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_object__detach_skeleton', 'cdecl'):
+    bpf_object__detach_skeleton = _libs['./libbpf.so.1'].get(
         'bpf_object__detach_skeleton', 'cdecl')
     bpf_object__detach_skeleton.argtypes = [POINTER(struct_bpf_object_skeleton)
         ]
     bpf_object__detach_skeleton.restype = None
-if _libs['libbpf.so.1'].has('bpf_object__destroy_skeleton', 'cdecl'):
-    bpf_object__destroy_skeleton = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_object__destroy_skeleton', 'cdecl'):
+    bpf_object__destroy_skeleton = _libs['./libbpf.so.1'].get(
         'bpf_object__destroy_skeleton', 'cdecl')
     bpf_object__destroy_skeleton.argtypes = [POINTER(
         struct_bpf_object_skeleton)]
@@ -2588,14 +2770,14 @@ struct_bpf_object_subskeleton._fields_ = [('sz', c_size_t), ('obj', POINTER
     'prog_skel_sz', c_int), ('progs', POINTER(struct_bpf_prog_skeleton)), (
     'var_cnt', c_int), ('var_skel_sz', c_int), ('vars', POINTER(
     struct_bpf_var_skeleton))]
-if _libs['libbpf.so.1'].has('bpf_object__open_subskeleton', 'cdecl'):
-    bpf_object__open_subskeleton = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_object__open_subskeleton', 'cdecl'):
+    bpf_object__open_subskeleton = _libs['./libbpf.so.1'].get(
         'bpf_object__open_subskeleton', 'cdecl')
     bpf_object__open_subskeleton.argtypes = [POINTER(
         struct_bpf_object_subskeleton)]
     bpf_object__open_subskeleton.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_object__destroy_subskeleton', 'cdecl'):
-    bpf_object__destroy_subskeleton = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_object__destroy_subskeleton', 'cdecl'):
+    bpf_object__destroy_subskeleton = _libs['./libbpf.so.1'].get(
         'bpf_object__destroy_subskeleton', 'cdecl')
     bpf_object__destroy_subskeleton.argtypes = [POINTER(
         struct_bpf_object_subskeleton)]
@@ -2607,12 +2789,13 @@ class struct_gen_loader_opts(Structure):
 
 
 struct_gen_loader_opts.__slots__ = ['sz', 'data', 'insns', 'data_sz',
-    'insns_sz']
+    'insns_sz', 'gen_hash']
 struct_gen_loader_opts._fields_ = [('sz', c_size_t), ('data', String), (
-    'insns', String), ('data_sz', __u32), ('insns_sz', __u32)]
-if _libs['libbpf.so.1'].has('bpf_object__gen_loader', 'cdecl'):
-    bpf_object__gen_loader = _libs['libbpf.so.1'].get('bpf_object__gen_loader',
-        'cdecl')
+    'insns', String), ('data_sz', __u32), ('insns_sz', __u32), ('gen_hash',
+    c_bool)]
+if _libs['./libbpf.so.1'].has('bpf_object__gen_loader', 'cdecl'):
+    bpf_object__gen_loader = _libs['./libbpf.so.1'].get(
+        'bpf_object__gen_loader', 'cdecl')
     bpf_object__gen_loader.argtypes = [POINTER(struct_bpf_object), POINTER(
         struct_gen_loader_opts)]
     bpf_object__gen_loader.restype = c_int
@@ -2642,23 +2825,40 @@ class struct_bpf_linker(Structure):
     pass
 
 
-if _libs['libbpf.so.1'].has('bpf_linker__new', 'cdecl'):
-    bpf_linker__new = _libs['libbpf.so.1'].get('bpf_linker__new', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_linker__new', 'cdecl'):
+    bpf_linker__new = _libs['./libbpf.so.1'].get('bpf_linker__new', 'cdecl')
     bpf_linker__new.argtypes = [String, POINTER(struct_bpf_linker_opts)]
     bpf_linker__new.restype = POINTER(struct_bpf_linker)
-if _libs['libbpf.so.1'].has('bpf_linker__add_file', 'cdecl'):
-    bpf_linker__add_file = _libs['libbpf.so.1'].get('bpf_linker__add_file',
+if _libs['./libbpf.so.1'].has('bpf_linker__new_fd', 'cdecl'):
+    bpf_linker__new_fd = _libs['./libbpf.so.1'].get('bpf_linker__new_fd',
+        'cdecl')
+    bpf_linker__new_fd.argtypes = [c_int, POINTER(struct_bpf_linker_opts)]
+    bpf_linker__new_fd.restype = POINTER(struct_bpf_linker)
+if _libs['./libbpf.so.1'].has('bpf_linker__add_file', 'cdecl'):
+    bpf_linker__add_file = _libs['./libbpf.so.1'].get('bpf_linker__add_file',
         'cdecl')
     bpf_linker__add_file.argtypes = [POINTER(struct_bpf_linker), String,
         POINTER(struct_bpf_linker_file_opts)]
     bpf_linker__add_file.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_linker__finalize', 'cdecl'):
-    bpf_linker__finalize = _libs['libbpf.so.1'].get('bpf_linker__finalize',
+if _libs['./libbpf.so.1'].has('bpf_linker__add_fd', 'cdecl'):
+    bpf_linker__add_fd = _libs['./libbpf.so.1'].get('bpf_linker__add_fd',
+        'cdecl')
+    bpf_linker__add_fd.argtypes = [POINTER(struct_bpf_linker), c_int,
+        POINTER(struct_bpf_linker_file_opts)]
+    bpf_linker__add_fd.restype = c_int
+if _libs['./libbpf.so.1'].has('bpf_linker__add_buf', 'cdecl'):
+    bpf_linker__add_buf = _libs['./libbpf.so.1'].get('bpf_linker__add_buf',
+        'cdecl')
+    bpf_linker__add_buf.argtypes = [POINTER(struct_bpf_linker), POINTER(
+        None), c_size_t, POINTER(struct_bpf_linker_file_opts)]
+    bpf_linker__add_buf.restype = c_int
+if _libs['./libbpf.so.1'].has('bpf_linker__finalize', 'cdecl'):
+    bpf_linker__finalize = _libs['./libbpf.so.1'].get('bpf_linker__finalize',
         'cdecl')
     bpf_linker__finalize.argtypes = [POINTER(struct_bpf_linker)]
     bpf_linker__finalize.restype = c_int
-if _libs['libbpf.so.1'].has('bpf_linker__free', 'cdecl'):
-    bpf_linker__free = _libs['libbpf.so.1'].get('bpf_linker__free', 'cdecl')
+if _libs['./libbpf.so.1'].has('bpf_linker__free', 'cdecl'):
+    bpf_linker__free = _libs['./libbpf.so.1'].get('bpf_linker__free', 'cdecl')
     bpf_linker__free.argtypes = [POINTER(struct_bpf_linker)]
     bpf_linker__free.restype = None
 
@@ -2685,14 +2885,14 @@ struct_libbpf_prog_handler_opts._fields_ = [('sz', c_size_t), ('cookie',
     c_long), ('prog_setup_fn', libbpf_prog_setup_fn_t), (
     'prog_prepare_load_fn', libbpf_prog_prepare_load_fn_t), (
     'prog_attach_fn', libbpf_prog_attach_fn_t)]
-if _libs['libbpf.so.1'].has('libbpf_register_prog_handler', 'cdecl'):
-    libbpf_register_prog_handler = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('libbpf_register_prog_handler', 'cdecl'):
+    libbpf_register_prog_handler = _libs['./libbpf.so.1'].get(
         'libbpf_register_prog_handler', 'cdecl')
     libbpf_register_prog_handler.argtypes = [String, enum_bpf_prog_type,
         enum_bpf_attach_type, POINTER(struct_libbpf_prog_handler_opts)]
     libbpf_register_prog_handler.restype = c_int
-if _libs['libbpf.so.1'].has('libbpf_unregister_prog_handler', 'cdecl'):
-    libbpf_unregister_prog_handler = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('libbpf_unregister_prog_handler', 'cdecl'):
+    libbpf_unregister_prog_handler = _libs['./libbpf.so.1'].get(
         'libbpf_unregister_prog_handler', 'cdecl')
     libbpf_unregister_prog_handler.argtypes = [c_int]
     libbpf_unregister_prog_handler.restype = c_int
@@ -2701,7 +2901,7 @@ struct_bpf_prog_load_opts.__slots__ = ['sz', 'attempts',
     'kern_version', 'attach_btf_id', 'attach_prog_fd', 'attach_btf_obj_fd',
     'fd_array', 'func_info', 'func_info_cnt', 'func_info_rec_size',
     'line_info', 'line_info_cnt', 'line_info_rec_size', 'log_level',
-    'log_size', 'log_buf', 'log_true_size', 'token_fd',
+    'log_size', 'log_buf', 'log_true_size', 'token_fd', 'fd_array_cnt',
     'unnamed_bpf_prog_load_opts_1']
 struct_bpf_prog_load_opts._fields_ = [('sz', c_size_t), ('attempts', c_int),
     ('expected_attach_type', enum_bpf_attach_type), ('prog_btf_fd', __u32),
@@ -2711,7 +2911,12 @@ struct_bpf_prog_load_opts._fields_ = [('sz', c_size_t), ('attempts', c_int),
     POINTER(None)), ('func_info_cnt', __u32), ('func_info_rec_size', __u32),
     ('line_info', POINTER(None)), ('line_info_cnt', __u32), (
     'line_info_rec_size', __u32), ('log_level', __u32), ('log_size', __u32),
-    ('log_buf', String), ('log_true_size', __u32), ('token_fd', __u32)]
+    ('log_buf', String), ('log_true_size', __u32), ('token_fd', __u32), (
+    'fd_array_cnt', __u32)]
+struct_bpf_prog_assoc_struct_ops_opts.__slots__ = ['sz', 'flags',
+    'unnamed_bpf_prog_assoc_struct_ops_opts_1']
+struct_bpf_prog_assoc_struct_ops_opts._fields_ = [('sz', c_size_t), (
+    'flags', __u32)]
 
 
 class struct_bpf_core_cand(Structure):
@@ -2789,7 +2994,9 @@ FEAT_BPF_COOKIE = FEAT_MEMCG_ACCOUNT + 1
 FEAT_BTF_ENUM64 = FEAT_BPF_COOKIE + 1
 FEAT_SYSCALL_WRAPPER = FEAT_BTF_ENUM64 + 1
 FEAT_UPROBE_MULTI_LINK = FEAT_SYSCALL_WRAPPER + 1
-__FEAT_CNT = FEAT_UPROBE_MULTI_LINK + 1
+FEAT_ARG_CTX_TAG = FEAT_UPROBE_MULTI_LINK + 1
+FEAT_BTF_QMARK_DATASEC = FEAT_ARG_CTX_TAG + 1
+__FEAT_CNT = FEAT_BTF_QMARK_DATASEC + 1
 enum_kern_feature_result = c_int
 
 
@@ -2825,17 +3032,18 @@ struct_btf_ext_header._fields_ = [('magic', __u16), ('version', __u8), (
     __u32), ('core_relo_off', __u32), ('core_relo_len', __u32)]
 
 
-class union_anon_272(Union):
+class union_anon_289(Union):
     pass
 
 
-union_anon_272.__slots__ = ['hdr', 'data']
-union_anon_272._fields_ = [('hdr', POINTER(struct_btf_ext_header)), ('data',
+union_anon_289.__slots__ = ['hdr', 'data']
+union_anon_289._fields_ = [('hdr', POINTER(struct_btf_ext_header)), ('data',
     POINTER(None))]
-struct_btf_ext.__slots__ = ['unnamed_btf_ext_1', 'func_info', 'line_info',
-    'core_relo_info', 'data_size']
+struct_btf_ext.__slots__ = ['unnamed_btf_ext_1', 'data_swapped',
+    'swapped_endian', 'func_info', 'line_info', 'core_relo_info', 'data_size']
 struct_btf_ext._anonymous_ = ['unnamed_btf_ext_1']
-struct_btf_ext._fields_ = [('unnamed_btf_ext_1', union_anon_272), (
+struct_btf_ext._fields_ = [('unnamed_btf_ext_1', union_anon_289), (
+    'data_swapped', POINTER(None)), ('swapped_endian', c_bool), (
     'func_info', struct_btf_ext_info), ('line_info', struct_btf_ext_info),
     ('core_relo_info', struct_btf_ext_info), ('data_size', __u32)]
 
@@ -2871,20 +3079,20 @@ hashmap_hash_fn = CFUNCTYPE(UNCHECKED(c_size_t), c_long, POINTER(None))
 hashmap_equal_fn = CFUNCTYPE(UNCHECKED(c_bool), c_long, c_long, POINTER(None))
 
 
-class union_anon_273(Union):
+class union_anon_290(Union):
     pass
 
 
-union_anon_273.__slots__ = ['key', 'pkey']
-union_anon_273._fields_ = [('key', c_long), ('pkey', POINTER(None))]
+union_anon_290.__slots__ = ['key', 'pkey']
+union_anon_290._fields_ = [('key', c_long), ('pkey', POINTER(None))]
 
 
-class union_anon_274(Union):
+class union_anon_291(Union):
     pass
 
 
-union_anon_274.__slots__ = ['value', 'pvalue']
-union_anon_274._fields_ = [('value', c_long), ('pvalue', POINTER(None))]
+union_anon_291.__slots__ = ['value', 'pvalue']
+union_anon_291._fields_ = [('value', c_long), ('pvalue', POINTER(None))]
 
 
 class struct_hashmap_entry(Structure):
@@ -2895,8 +3103,8 @@ struct_hashmap_entry.__slots__ = ['unnamed_hashmap_entry_1',
     'unnamed_hashmap_entry_2', 'next']
 struct_hashmap_entry._anonymous_ = ['unnamed_hashmap_entry_1',
     'unnamed_hashmap_entry_2']
-struct_hashmap_entry._fields_ = [('unnamed_hashmap_entry_1', union_anon_273
-    ), ('unnamed_hashmap_entry_2', union_anon_274), ('next', POINTER(
+struct_hashmap_entry._fields_ = [('unnamed_hashmap_entry_1', union_anon_290
+    ), ('unnamed_hashmap_entry_2', union_anon_291), ('next', POINTER(
     struct_hashmap_entry))]
 
 
@@ -2923,12 +3131,12 @@ struct_ksym_relo_desc._fields_ = [('name', String), ('kind', c_int), (
     'is_ld64', c_bool)]
 
 
-class union_anon_275(Union):
+class union_anon_292(Union):
     pass
 
 
-union_anon_275.__slots__ = ['off', 'typeless']
-union_anon_275._fields_ = [('off', c_int), ('typeless', c_bool)]
+union_anon_292.__slots__ = ['off', 'typeless']
+union_anon_292._fields_ = [('off', c_int), ('typeless', c_bool)]
 
 
 class struct_ksym_desc(Structure):
@@ -2939,7 +3147,7 @@ struct_ksym_desc.__slots__ = ['name', 'ref', 'kind', 'unnamed_ksym_desc_1',
     'insn', 'is_ld64']
 struct_ksym_desc._anonymous_ = ['unnamed_ksym_desc_1']
 struct_ksym_desc._fields_ = [('name', String), ('ref', c_int), ('kind',
-    c_int), ('unnamed_ksym_desc_1', union_anon_275), ('insn', c_int), (
+    c_int), ('unnamed_ksym_desc_1', union_anon_292), ('insn', c_int), (
     'is_ld64', c_bool)]
 
 
@@ -2948,20 +3156,21 @@ class struct_bpf_gen(Structure):
 
 
 struct_bpf_gen.__slots__ = ['opts', 'data_start', 'data_cur', 'insn_start',
-    'insn_cur', 'cleanup_label', 'nr_progs', 'nr_maps', 'log_level',
-    'error', 'relos', 'relo_cnt', 'core_relos', 'core_relo_cnt',
-    'attach_target', 'attach_kind', 'ksyms', 'nr_ksyms', 'fd_array',
-    'nr_fd_array']
+    'insn_cur', 'swapped_endian', 'cleanup_label', 'nr_progs', 'nr_maps',
+    'log_level', 'error', 'relos', 'relo_cnt', 'core_relos',
+    'core_relo_cnt', 'attach_target', 'attach_kind', 'ksyms', 'nr_ksyms',
+    'fd_array', 'nr_fd_array', 'hash_insn_offset']
 struct_bpf_gen._fields_ = [('opts', POINTER(struct_gen_loader_opts)), (
     'data_start', POINTER(None)), ('data_cur', POINTER(None)), (
     'insn_start', POINTER(None)), ('insn_cur', POINTER(None)), (
-    'cleanup_label', c_ptrdiff_t), ('nr_progs', __u32), ('nr_maps', __u32),
-    ('log_level', c_int), ('error', c_int), ('relos', POINTER(
-    struct_ksym_relo_desc)), ('relo_cnt', c_int), ('core_relos', POINTER(
-    struct_bpf_core_relo)), ('core_relo_cnt', c_int), ('attach_target', 
-    c_char * int(128)), ('attach_kind', c_int), ('ksyms', POINTER(
-    struct_ksym_desc)), ('nr_ksyms', __u32), ('fd_array', c_int), (
-    'nr_fd_array', c_int)]
+    'swapped_endian', c_bool), ('cleanup_label', c_ptrdiff_t), ('nr_progs',
+    __u32), ('nr_maps', __u32), ('log_level', c_int), ('error', c_int), (
+    'relos', POINTER(struct_ksym_relo_desc)), ('relo_cnt', c_int), (
+    'core_relos', POINTER(struct_bpf_core_relo)), ('core_relo_cnt', c_int),
+    ('attach_target', c_char * int(128)), ('attach_kind', c_int), ('ksyms',
+    POINTER(struct_ksym_desc)), ('nr_ksyms', __u32), ('fd_array', c_int), (
+    'nr_fd_array', c_int), ('hash_insn_offset', c_int * int(32 / sizeof(
+    __u64)))]
 
 
 class struct_zip_archive(Structure):
@@ -2977,21 +3186,33 @@ struct_zip_entry.__slots__ = ['compression', 'name', 'name_length', 'data',
 struct_zip_entry._fields_ = [('compression', __u16), ('name', String), (
     'name_length', __u16), ('data', POINTER(None)), ('data_length', __u32),
     ('data_offset', __u32)]
-if _libs['libbpf.so.1'].has('bpf_object__add_map', 'cdecl'):
-    bpf_object__add_map = _libs['libbpf.so.1'].get('bpf_object__add_map',
+if _libs['./libbpf.so.1'].has('bpf_object__add_map', 'cdecl'):
+    bpf_object__add_map = _libs['./libbpf.so.1'].get('bpf_object__add_map',
         'cdecl')
     bpf_object__add_map.argtypes = [POINTER(struct_bpf_object)]
     bpf_object__add_map.restype = POINTER(struct_bpf_map)
-if _libs['libbpf.so.1'].has('prog_is_subprog', 'cdecl'):
-    prog_is_subprog = _libs['libbpf.so.1'].get('prog_is_subprog', 'cdecl')
+if _libs['./libbpf.so.1'].has('prog_is_subprog', 'cdecl'):
+    prog_is_subprog = _libs['./libbpf.so.1'].get('prog_is_subprog', 'cdecl')
     prog_is_subprog.argtypes = [POINTER(struct_bpf_object), POINTER(
         struct_bpf_program)]
     prog_is_subprog.restype = c_bool
-if _libs['libbpf.so.1'].has('map_set_def_max_entries', 'cdecl'):
-    map_set_def_max_entries = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('map_set_def_max_entries', 'cdecl'):
+    map_set_def_max_entries = _libs['./libbpf.so.1'].get(
         'map_set_def_max_entries', 'cdecl')
     map_set_def_max_entries.argtypes = [POINTER(struct_bpf_map)]
     map_set_def_max_entries.restype = c_int
+for _lib in _libs.values():
+    try:
+        env_var = String.in_dll(_lib, 'env_var')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        verbosity = String.in_dll(_lib, 'verbosity')
+        break
+    except:
+        pass
 for _lib in _libs.values():
     try:
         old_print_fn = libbpf_print_fn_t.in_dll(_lib, 'old_print_fn')
@@ -3036,25 +3257,35 @@ RELO_EXTERN_LD64 = RELO_DATA + 1
 RELO_EXTERN_CALL = RELO_EXTERN_LD64 + 1
 RELO_SUBPROG_ADDR = RELO_EXTERN_CALL + 1
 RELO_CORE = RELO_SUBPROG_ADDR + 1
+RELO_INSN_ARRAY = RELO_CORE + 1
 
 
-class struct_anon_276(Structure):
+class union_anon_293(Union):
     pass
 
 
-struct_anon_276.__slots__ = ['map_idx', 'sym_off', 'ext_idx']
-struct_anon_276._fields_ = [('map_idx', c_int), ('sym_off', c_int), (
-    'ext_idx', c_int)]
+union_anon_293.__slots__ = ['ext_idx', 'sym_size']
+union_anon_293._fields_ = [('ext_idx', c_int), ('sym_size', c_int)]
 
 
-class union_anon_277(Union):
+class struct_anon_294(Structure):
     pass
 
 
-union_anon_277.__slots__ = ['core_relo', 'unnamed_anon_277_1']
-union_anon_277._anonymous_ = ['unnamed_anon_277_1']
-union_anon_277._fields_ = [('core_relo', POINTER(struct_bpf_core_relo)), (
-    'unnamed_anon_277_1', struct_anon_276)]
+struct_anon_294.__slots__ = ['map_idx', 'sym_off', 'unnamed_anon_294_1']
+struct_anon_294._anonymous_ = ['unnamed_anon_294_1']
+struct_anon_294._fields_ = [('map_idx', c_int), ('sym_off', c_int), (
+    'unnamed_anon_294_1', union_anon_293)]
+
+
+class union_anon_295(Union):
+    pass
+
+
+union_anon_295.__slots__ = ['core_relo', 'unnamed_anon_295_1']
+union_anon_295._anonymous_ = ['unnamed_anon_295_1']
+union_anon_295._fields_ = [('core_relo', POINTER(struct_bpf_core_relo)), (
+    'unnamed_anon_295_1', struct_anon_294)]
 
 
 class struct_reloc_desc(Structure):
@@ -3064,7 +3295,7 @@ class struct_reloc_desc(Structure):
 struct_reloc_desc.__slots__ = ['type', 'insn_idx', 'unnamed_reloc_desc_1']
 struct_reloc_desc._anonymous_ = ['unnamed_reloc_desc_1']
 struct_reloc_desc._fields_ = [('type', enum_reloc_type), ('insn_idx', c_int
-    ), ('unnamed_reloc_desc_1', union_anon_277)]
+    ), ('unnamed_reloc_desc_1', union_anon_295)]
 enum_sec_def_flags = c_int
 SEC_NONE = 0
 SEC_EXP_ATTACH_OPT = 1
@@ -3089,6 +3320,15 @@ struct_bpf_sec_def._fields_ = [('sec', String), ('prog_type',
     libbpf_prog_setup_fn_t), ('prog_prepare_load_fn',
     libbpf_prog_prepare_load_fn_t), ('prog_attach_fn', libbpf_prog_attach_fn_t)
     ]
+
+
+class struct_bpf_light_subprog(Structure):
+    pass
+
+
+struct_bpf_light_subprog.__slots__ = ['sec_insn_off', 'sub_insn_off']
+struct_bpf_light_subprog._fields_ = [('sec_insn_off', __u32), (
+    'sub_insn_off', __u32)]
 struct_bpf_program.__slots__ = ['name', 'sec_name', 'sec_idx', 'sec_def',
     'sec_insn_off', 'sec_insn_cnt', 'sub_insn_off', 'insns', 'insns_cnt',
     'reloc_desc', 'nr_reloc', 'log_buf', 'log_size', 'log_level', 'obj',
@@ -3096,7 +3336,8 @@ struct_bpf_program.__slots__ = ['name', 'sec_name', 'sec_idx', 'sec_def',
     'expected_attach_type', 'exception_cb_idx', 'prog_ifindex',
     'attach_btf_obj_fd', 'attach_btf_id', 'attach_prog_fd', 'func_info',
     'func_info_rec_size', 'func_info_cnt', 'line_info',
-    'line_info_rec_size', 'line_info_cnt', 'prog_flags']
+    'line_info_rec_size', 'line_info_cnt', 'prog_flags', 'hash', 'subprogs',
+    'subprog_cnt']
 struct_bpf_program._fields_ = [('name', String), ('sec_name', String), (
     'sec_idx', c_size_t), ('sec_def', POINTER(struct_bpf_sec_def)), (
     'sec_insn_off', c_size_t), ('sec_insn_cnt', c_size_t), ('sub_insn_off',
@@ -3111,19 +3352,19 @@ struct_bpf_program._fields_ = [('name', String), ('sec_name', String), (
     'attach_prog_fd', __u32), ('func_info', POINTER(None)), (
     'func_info_rec_size', __u32), ('func_info_cnt', __u32), ('line_info',
     POINTER(None)), ('line_info_rec_size', __u32), ('line_info_cnt', __u32),
-    ('prog_flags', __u32)]
+    ('prog_flags', __u32), ('hash', __u8 * int(32)), ('subprogs', POINTER(
+    struct_bpf_light_subprog)), ('subprog_cnt', __u32)]
 
 
 class struct_bpf_struct_ops(Structure):
     pass
 
 
-struct_bpf_struct_ops.__slots__ = ['tname', 'type', 'progs',
-    'kern_func_off', 'data', 'kern_vdata', 'type_id']
-struct_bpf_struct_ops._fields_ = [('tname', String), ('type', POINTER(
-    struct_btf_type)), ('progs', POINTER(POINTER(struct_bpf_program))), (
-    'kern_func_off', POINTER(__u32)), ('data', POINTER(None)), (
-    'kern_vdata', POINTER(None)), ('type_id', __u32)]
+struct_bpf_struct_ops.__slots__ = ['progs', 'kern_func_off', 'data',
+    'kern_vdata', 'type_id']
+struct_bpf_struct_ops._fields_ = [('progs', POINTER(POINTER(
+    struct_bpf_program))), ('kern_func_off', POINTER(__u32)), ('data',
+    POINTER(None)), ('kern_vdata', POINTER(None)), ('type_id', __u32)]
 enum_libbpf_map_type = c_int
 LIBBPF_MAP_UNSPEC = 0
 LIBBPF_MAP_DATA = LIBBPF_MAP_UNSPEC + 1
@@ -3145,7 +3386,7 @@ struct_bpf_map.__slots__ = ['obj', 'name', 'real_name', 'fd', 'sec_idx',
     'btf_var_idx', 'mod_btf_fd', 'btf_key_type_id', 'btf_value_type_id',
     'btf_vmlinux_value_type_id', 'libbpf_type', 'mmaped', 'st_ops',
     'inner_map', 'init_slots', 'init_slots_sz', 'pin_path', 'pinned',
-    'reused', 'autocreate', 'map_extra']
+    'reused', 'autocreate', 'autoattach', 'map_extra', 'excl_prog']
 struct_bpf_map._fields_ = [('obj', POINTER(struct_bpf_object)), ('name',
     String), ('real_name', String), ('fd', c_int), ('sec_idx', c_int), (
     'sec_offset', c_size_t), ('map_ifindex', c_int), ('inner_map_fd', c_int
@@ -3156,7 +3397,8 @@ struct_bpf_map._fields_ = [('obj', POINTER(struct_bpf_object)), ('name',
     'st_ops', POINTER(struct_bpf_struct_ops)), ('inner_map', POINTER(
     struct_bpf_map)), ('init_slots', POINTER(POINTER(None))), (
     'init_slots_sz', c_int), ('pin_path', String), ('pinned', c_bool), (
-    'reused', c_bool), ('autocreate', c_bool), ('map_extra', __u64)]
+    'reused', c_bool), ('autocreate', c_bool), ('autoattach', c_bool), (
+    'map_extra', __u64), ('excl_prog', POINTER(struct_bpf_program))]
 enum_extern_type = c_int
 EXT_UNKNOWN = 0
 EXT_KCFG = EXT_UNKNOWN + 1
@@ -3170,32 +3412,32 @@ KCFG_TRISTATE = KCFG_INT + 1
 KCFG_CHAR_ARR = KCFG_TRISTATE + 1
 
 
-class struct_anon_278(Structure):
+class struct_anon_296(Structure):
     pass
 
 
-struct_anon_278.__slots__ = ['type', 'sz', 'align', 'data_off', 'is_signed']
-struct_anon_278._fields_ = [('type', enum_kcfg_type), ('sz', c_int), (
+struct_anon_296.__slots__ = ['type', 'sz', 'align', 'data_off', 'is_signed']
+struct_anon_296._fields_ = [('type', enum_kcfg_type), ('sz', c_int), (
     'align', c_int), ('data_off', c_int), ('is_signed', c_bool)]
 
 
-class struct_anon_279(Structure):
+class struct_anon_297(Structure):
     pass
 
 
-struct_anon_279.__slots__ = ['addr', 'kernel_btf_obj_fd', 'kernel_btf_id',
+struct_anon_297.__slots__ = ['addr', 'kernel_btf_obj_fd', 'kernel_btf_id',
     'type_id', 'btf_fd_idx']
-struct_anon_279._fields_ = [('addr', c_ulonglong), ('kernel_btf_obj_fd',
+struct_anon_297._fields_ = [('addr', c_ulonglong), ('kernel_btf_obj_fd',
     c_int), ('kernel_btf_id', c_int), ('type_id', __u32), ('btf_fd_idx', __s16)
     ]
 
 
-class union_anon_280(Union):
+class union_anon_298(Union):
     pass
 
 
-union_anon_280.__slots__ = ['kcfg', 'ksym']
-union_anon_280._fields_ = [('kcfg', struct_anon_278), ('ksym', struct_anon_279)
+union_anon_298.__slots__ = ['kcfg', 'ksym']
+union_anon_298._fields_ = [('kcfg', struct_anon_296), ('ksym', struct_anon_297)
     ]
 
 
@@ -3209,7 +3451,7 @@ struct_extern_desc._anonymous_ = ['unnamed_extern_desc_1']
 struct_extern_desc._fields_ = [('type', enum_extern_type), ('sym_idx',
     c_int), ('btf_id', c_int), ('sec_btf_id', c_int), ('name', String), (
     'essent_name', String), ('is_set', c_bool), ('is_weak', c_bool), (
-    'unnamed_extern_desc_1', union_anon_280)]
+    'unnamed_extern_desc_1', union_anon_298)]
 
 
 class struct_module_btf(Structure):
@@ -3225,6 +3467,7 @@ SEC_RELO = SEC_UNUSED + 1
 SEC_BSS = SEC_RELO + 1
 SEC_DATA = SEC_BSS + 1
 SEC_RODATA = SEC_DATA + 1
+SEC_ST_OPS = SEC_RODATA + 1
 
 
 class struct_elf_sec_desc(Structure):
@@ -3241,77 +3484,96 @@ class struct_elf_state(Structure):
 
 
 struct_elf_state.__slots__ = ['fd', 'obj_buf', 'obj_buf_sz', 'elf', 'ehdr',
-    'symbols', 'st_ops_data', 'st_ops_link_data', 'shstrndx', 'strtabidx',
-    'secs', 'sec_cnt', 'btf_maps_shndx', 'btf_maps_sec_btf_id',
-    'text_shndx', 'symbols_shndx', 'st_ops_shndx', 'st_ops_link_shndx']
+    'symbols', 'arena_data', 'shstrndx', 'strtabidx', 'secs', 'sec_cnt',
+    'btf_maps_shndx', 'btf_maps_sec_btf_id', 'text_shndx', 'symbols_shndx',
+    'has_st_ops', 'arena_data_shndx', 'jumptables_data_shndx']
 struct_elf_state._fields_ = [('fd', c_int), ('obj_buf', POINTER(None)), (
     'obj_buf_sz', c_size_t), ('elf', POINTER(Elf)), ('ehdr', POINTER(
-    Elf64_Ehdr)), ('symbols', POINTER(Elf_Data)), ('st_ops_data', POINTER(
-    Elf_Data)), ('st_ops_link_data', POINTER(Elf_Data)), ('shstrndx',
-    c_size_t), ('strtabidx', c_size_t), ('secs', POINTER(
-    struct_elf_sec_desc)), ('sec_cnt', c_size_t), ('btf_maps_shndx', c_int),
-    ('btf_maps_sec_btf_id', __u32), ('text_shndx', c_int), ('symbols_shndx',
-    c_int), ('st_ops_shndx', c_int), ('st_ops_link_shndx', c_int)]
-struct_bpf_object.__slots__ = ['name', 'license', 'kern_version',
+    Elf64_Ehdr)), ('symbols', POINTER(Elf_Data)), ('arena_data', POINTER(
+    Elf_Data)), ('shstrndx', c_size_t), ('strtabidx', c_size_t), ('secs',
+    POINTER(struct_elf_sec_desc)), ('sec_cnt', c_size_t), ('btf_maps_shndx',
+    c_int), ('btf_maps_sec_btf_id', __u32), ('text_shndx', c_int), (
+    'symbols_shndx', c_int), ('has_st_ops', c_bool), ('arena_data_shndx',
+    c_int), ('jumptables_data_shndx', c_int)]
+enum_bpf_object_state = c_int
+OBJ_OPEN = 0
+OBJ_PREPARED = OBJ_OPEN + 1
+OBJ_LOADED = OBJ_PREPARED + 1
+
+
+class struct_anon_299(Structure):
+    pass
+
+
+struct_anon_299.__slots__ = ['prog', 'sym_off', 'fd']
+struct_anon_299._fields_ = [('prog', POINTER(struct_bpf_program)), (
+    'sym_off', c_int), ('fd', c_int)]
+struct_bpf_object.__slots__ = ['name', 'license', 'kern_version', 'state',
     'programs', 'nr_programs', 'maps', 'nr_maps', 'maps_cap', 'kconfig',
-    'externs', 'nr_extern', 'kconfig_map_idx', 'loaded', 'has_subcalls',
-    'has_rodata', 'gen_loader', 'efile', 'btf', 'btf_ext', 'btf_vmlinux',
+    'externs', 'nr_extern', 'kconfig_map_idx', 'has_subcalls', 'has_rodata',
+    'gen_loader', 'efile', 'byteorder', 'btf', 'btf_ext', 'btf_vmlinux',
     'btf_custom_path', 'btf_vmlinux_override', 'btf_modules',
     'btf_modules_loaded', 'btf_module_cnt', 'btf_module_cap', 'log_buf',
     'log_size', 'log_level', 'fd_array', 'fd_array_cap', 'fd_array_cnt',
-    'usdt_man', 'feat_cache', 'token_path', 'token_fd', 'path']
+    'usdt_man', 'arena_map_idx', 'arena_data', 'arena_data_sz',
+    'jumptables_data', 'jumptables_data_sz', 'jumptable_maps',
+    'jumptable_map_cnt', 'feat_cache', 'token_path', 'token_fd', 'path']
 struct_bpf_object._fields_ = [('name', c_char * int(16)), ('license', 
-    c_char * int(64)), ('kern_version', __u32), ('programs', POINTER(
-    struct_bpf_program)), ('nr_programs', c_size_t), ('maps', POINTER(
-    struct_bpf_map)), ('nr_maps', c_size_t), ('maps_cap', c_size_t), (
-    'kconfig', String), ('externs', POINTER(struct_extern_desc)), (
-    'nr_extern', c_int), ('kconfig_map_idx', c_int), ('loaded', c_bool), (
-    'has_subcalls', c_bool), ('has_rodata', c_bool), ('gen_loader', POINTER
-    (struct_bpf_gen)), ('efile', struct_elf_state), ('btf', POINTER(
-    struct_btf)), ('btf_ext', POINTER(struct_btf_ext)), ('btf_vmlinux',
-    POINTER(struct_btf)), ('btf_custom_path', String), (
-    'btf_vmlinux_override', POINTER(struct_btf)), ('btf_modules', POINTER(
-    struct_module_btf)), ('btf_modules_loaded', c_bool), ('btf_module_cnt',
-    c_size_t), ('btf_module_cap', c_size_t), ('log_buf', String), (
-    'log_size', c_size_t), ('log_level', __u32), ('fd_array', POINTER(c_int
-    )), ('fd_array_cap', c_size_t), ('fd_array_cnt', c_size_t), ('usdt_man',
-    POINTER(struct_usdt_manager)), ('feat_cache', POINTER(
-    struct_kern_feature_cache)), ('token_path', String), ('token_fd', c_int
-    ), ('path', POINTER(c_char))]
-if _libs['libbpf.so.1'].has('elf_sym_str', 'cdecl'):
-    elf_sym_str = _libs['libbpf.so.1'].get('elf_sym_str', 'cdecl')
+    c_char * int(64)), ('kern_version', __u32), ('state',
+    enum_bpf_object_state), ('programs', POINTER(struct_bpf_program)), (
+    'nr_programs', c_size_t), ('maps', POINTER(struct_bpf_map)), ('nr_maps',
+    c_size_t), ('maps_cap', c_size_t), ('kconfig', String), ('externs',
+    POINTER(struct_extern_desc)), ('nr_extern', c_int), ('kconfig_map_idx',
+    c_int), ('has_subcalls', c_bool), ('has_rodata', c_bool), ('gen_loader',
+    POINTER(struct_bpf_gen)), ('efile', struct_elf_state), ('byteorder',
+    c_ubyte), ('btf', POINTER(struct_btf)), ('btf_ext', POINTER(
+    struct_btf_ext)), ('btf_vmlinux', POINTER(struct_btf)), (
+    'btf_custom_path', String), ('btf_vmlinux_override', POINTER(struct_btf
+    )), ('btf_modules', POINTER(struct_module_btf)), ('btf_modules_loaded',
+    c_bool), ('btf_module_cnt', c_size_t), ('btf_module_cap', c_size_t), (
+    'log_buf', String), ('log_size', c_size_t), ('log_level', __u32), (
+    'fd_array', POINTER(c_int)), ('fd_array_cap', c_size_t), (
+    'fd_array_cnt', c_size_t), ('usdt_man', POINTER(struct_usdt_manager)),
+    ('arena_map_idx', c_int), ('arena_data', POINTER(None)), (
+    'arena_data_sz', c_size_t), ('jumptables_data', POINTER(None)), (
+    'jumptables_data_sz', c_size_t), ('jumptable_maps', POINTER(
+    struct_anon_299)), ('jumptable_map_cnt', c_size_t), ('feat_cache',
+    POINTER(struct_kern_feature_cache)), ('token_path', String), (
+    'token_fd', c_int), ('path', POINTER(c_char))]
+if _libs['./libbpf.so.1'].has('elf_sym_str', 'cdecl'):
+    elf_sym_str = _libs['./libbpf.so.1'].get('elf_sym_str', 'cdecl')
     elf_sym_str.argtypes = [POINTER(struct_bpf_object), c_size_t]
     elf_sym_str.restype = c_char_p
-if _libs['libbpf.so.1'].has('elf_sec_str', 'cdecl'):
-    elf_sec_str = _libs['libbpf.so.1'].get('elf_sec_str', 'cdecl')
+if _libs['./libbpf.so.1'].has('elf_sec_str', 'cdecl'):
+    elf_sec_str = _libs['./libbpf.so.1'].get('elf_sec_str', 'cdecl')
     elf_sec_str.argtypes = [POINTER(struct_bpf_object), c_size_t]
     elf_sec_str.restype = c_char_p
-if _libs['libbpf.so.1'].has('elf_sec_by_idx', 'cdecl'):
-    elf_sec_by_idx = _libs['libbpf.so.1'].get('elf_sec_by_idx', 'cdecl')
+if _libs['./libbpf.so.1'].has('elf_sec_by_idx', 'cdecl'):
+    elf_sec_by_idx = _libs['./libbpf.so.1'].get('elf_sec_by_idx', 'cdecl')
     elf_sec_by_idx.argtypes = [POINTER(struct_bpf_object), c_size_t]
     elf_sec_by_idx.restype = POINTER(Elf_Scn)
-if _libs['libbpf.so.1'].has('elf_sec_by_name', 'cdecl'):
-    elf_sec_by_name = _libs['libbpf.so.1'].get('elf_sec_by_name', 'cdecl')
+if _libs['./libbpf.so.1'].has('elf_sec_by_name', 'cdecl'):
+    elf_sec_by_name = _libs['./libbpf.so.1'].get('elf_sec_by_name', 'cdecl')
     elf_sec_by_name.argtypes = [POINTER(struct_bpf_object), String]
     elf_sec_by_name.restype = POINTER(Elf_Scn)
-if _libs['libbpf.so.1'].has('elf_sec_hdr', 'cdecl'):
-    elf_sec_hdr = _libs['libbpf.so.1'].get('elf_sec_hdr', 'cdecl')
+if _libs['./libbpf.so.1'].has('elf_sec_hdr', 'cdecl'):
+    elf_sec_hdr = _libs['./libbpf.so.1'].get('elf_sec_hdr', 'cdecl')
     elf_sec_hdr.argtypes = [POINTER(struct_bpf_object), POINTER(Elf_Scn)]
     elf_sec_hdr.restype = POINTER(Elf64_Shdr)
-if _libs['libbpf.so.1'].has('elf_sec_name', 'cdecl'):
-    elf_sec_name = _libs['libbpf.so.1'].get('elf_sec_name', 'cdecl')
+if _libs['./libbpf.so.1'].has('elf_sec_name', 'cdecl'):
+    elf_sec_name = _libs['./libbpf.so.1'].get('elf_sec_name', 'cdecl')
     elf_sec_name.argtypes = [POINTER(struct_bpf_object), POINTER(Elf_Scn)]
     elf_sec_name.restype = c_char_p
-if _libs['libbpf.so.1'].has('elf_sec_data', 'cdecl'):
-    elf_sec_data = _libs['libbpf.so.1'].get('elf_sec_data', 'cdecl')
+if _libs['./libbpf.so.1'].has('elf_sec_data', 'cdecl'):
+    elf_sec_data = _libs['./libbpf.so.1'].get('elf_sec_data', 'cdecl')
     elf_sec_data.argtypes = [POINTER(struct_bpf_object), POINTER(Elf_Scn)]
     elf_sec_data.restype = POINTER(Elf_Data)
-if _libs['libbpf.so.1'].has('elf_sym_by_idx', 'cdecl'):
-    elf_sym_by_idx = _libs['libbpf.so.1'].get('elf_sym_by_idx', 'cdecl')
+if _libs['./libbpf.so.1'].has('elf_sym_by_idx', 'cdecl'):
+    elf_sym_by_idx = _libs['./libbpf.so.1'].get('elf_sym_by_idx', 'cdecl')
     elf_sym_by_idx.argtypes = [POINTER(struct_bpf_object), c_size_t]
     elf_sym_by_idx.restype = POINTER(Elf64_Sym)
-if _libs['libbpf.so.1'].has('elf_rel_by_idx', 'cdecl'):
-    elf_rel_by_idx = _libs['libbpf.so.1'].get('elf_rel_by_idx', 'cdecl')
+if _libs['./libbpf.so.1'].has('elf_rel_by_idx', 'cdecl'):
+    elf_rel_by_idx = _libs['./libbpf.so.1'].get('elf_rel_by_idx', 'cdecl')
     elf_rel_by_idx.argtypes = [POINTER(Elf_Data), c_size_t]
     elf_rel_by_idx.restype = POINTER(Elf64_Rel)
 for _lib in _libs.values():
@@ -3368,12 +3630,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         i = c_int.in_dll(_lib, 'i')
@@ -3394,7 +3654,19 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        m = POINTER(struct_btf_member).in_dll(_lib, 'm')
+        prog = POINTER(struct_bpf_program).in_dll(_lib, 'prog')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        insn = POINTER(struct_bpf_insn).in_dll(_lib, 'insn')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        p = c_int.in_dll(_lib, 'p')
         break
     except:
         pass
@@ -3416,13 +3688,25 @@ for _lib in _libs.values():
         break
     except:
         pass
-if _libs['libbpf.so.1'].has('find_ksym_btf_id', 'cdecl'):
-    find_ksym_btf_id = _libs['libbpf.so.1'].get('find_ksym_btf_id', 'cdecl')
+for _lib in _libs.values():
+    try:
+        m = POINTER(struct_btf_member).in_dll(_lib, 'm')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        i = c_int.in_dll(_lib, 'i')
+        break
+    except:
+        pass
+if _libs['./libbpf.so.1'].has('find_ksym_btf_id', 'cdecl'):
+    find_ksym_btf_id = _libs['./libbpf.so.1'].get('find_ksym_btf_id', 'cdecl')
     find_ksym_btf_id.argtypes = [POINTER(struct_bpf_object), String, __u16,
         POINTER(POINTER(struct_btf)), POINTER(POINTER(struct_module_btf))]
     find_ksym_btf_id.restype = c_int
-if _libs['libbpf.so.1'].has('find_btf_by_prefix_kind', 'cdecl'):
-    find_btf_by_prefix_kind = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('find_btf_by_prefix_kind', 'cdecl'):
+    find_btf_by_prefix_kind = _libs['./libbpf.so.1'].get(
         'find_btf_by_prefix_kind', 'cdecl')
     find_btf_by_prefix_kind.argtypes = [POINTER(struct_btf), String, String,
         __u32]
@@ -3466,7 +3750,85 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
+        tname = (c_char * int(192)).in_dll(_lib, 'tname')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        stname = (c_char * int(256)).in_dll(_lib, 'stname')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
         i = __u32.in_dll(_lib, 'i')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        i = c_int.in_dll(_lib, 'i')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        prog = POINTER(struct_bpf_program).in_dll(_lib, 'prog')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        slot_prog = POINTER(struct_bpf_program).in_dll(_lib, 'slot_prog')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        map = POINTER(struct_bpf_map).in_dll(_lib, 'map')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        i = c_int.in_dll(_lib, 'i')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        j = c_int.in_dll(_lib, 'j')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        k = c_int.in_dll(_lib, 'k')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        vlen = c_int.in_dll(_lib, 'vlen')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        should_load = c_int.in_dll(_lib, 'should_load')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        use_cnt = c_int.in_dll(_lib, 'use_cnt')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        type = POINTER(struct_btf_type).in_dll(_lib, 'type')
         break
     except:
         pass
@@ -3579,12 +3941,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         mtype = POINTER(struct_btf_type).in_dll(_lib, 'mtype')
@@ -3618,6 +3978,12 @@ for _lib in _libs.values():
 for _lib in _libs.values():
     try:
         kern_mdata = POINTER(None).in_dll(_lib, 'kern_mdata')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        prog = POINTER(struct_bpf_program).in_dll(_lib, 'prog')
         break
     except:
         pass
@@ -3659,12 +4025,6 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        prog = POINTER(struct_bpf_program).in_dll(_lib, 'prog')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
         map = POINTER(struct_bpf_map).in_dll(_lib, 'map')
         break
     except:
@@ -3675,12 +4035,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         type = POINTER(struct_btf_type).in_dll(_lib, 'type')
@@ -3749,7 +4107,23 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        err = c_int.in_dll(_lib, 'err')
+        sec_name = String.in_dll(_lib, 'sec_name')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        sec_idx = c_int.in_dll(_lib, 'sec_idx')
+        break
+    except:
+        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
+for _lib in _libs.values():
+    try:
+        desc = POINTER(struct_elf_sec_desc).in_dll(_lib, 'desc')
         break
     except:
         pass
@@ -3777,27 +4151,13 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         elf = POINTER(Elf).in_dll(_lib, 'elf')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        cp = String.in_dll(_lib, 'cp')
         break
     except:
         pass
@@ -3845,6 +4205,18 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
+        flags = c_uint.in_dll(_lib, 'flags')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        name = String.in_dll(_lib, 'name')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
         fd = c_int.in_dll(_lib, 'fd')
         break
     except:
@@ -3855,12 +4227,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         page_sz = c_long.in_dll(_lib, 'page_sz')
@@ -3870,6 +4240,12 @@ for _lib in _libs.values():
 for _lib in _libs.values():
     try:
         map_sz = c_size_t.in_dll(_lib, 'map_sz')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        page_sz = c_long.in_dll(_lib, 'page_sz')
         break
     except:
         pass
@@ -3891,9 +4267,9 @@ for _lib in _libs.values():
         break
     except:
         pass
-if _libs['libbpf.so.1'].has('map_fill_btf_type_info', 'cdecl'):
-    map_fill_btf_type_info = _libs['libbpf.so.1'].get('map_fill_btf_type_info',
-        'cdecl')
+if _libs['./libbpf.so.1'].has('map_fill_btf_type_info', 'cdecl'):
+    map_fill_btf_type_info = _libs['./libbpf.so.1'].get(
+        'map_fill_btf_type_info', 'cdecl')
     map_fill_btf_type_info.argtypes = [POINTER(struct_bpf_object), POINTER(
         struct_bpf_map)]
     map_fill_btf_type_info.restype = c_int
@@ -3945,12 +4321,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         sec_desc = POINTER(struct_elf_sec_desc).in_dll(_lib, 'sec_desc')
@@ -3963,15 +4337,25 @@ for _lib in _libs.values():
         break
     except:
         pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
-        err = c_int.in_dll(_lib, 'err')
+        sec_idx = c_int.in_dll(_lib, 'sec_idx')
         break
     except:
         pass
 for _lib in _libs.values():
     try:
-        sec_idx = c_int.in_dll(_lib, 'sec_idx')
+        i = c_int.in_dll(_lib, 'i')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        ext_name = String.in_dll(_lib, 'ext_name')
         break
     except:
         pass
@@ -3993,12 +4377,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         bit_sz = c_int.in_dll(_lib, 'bit_sz')
@@ -4029,12 +4411,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         ext_val = POINTER(None).in_dll(_lib, 'ext_val')
@@ -4065,12 +4445,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         file = gzFile.in_dll(_lib, 'file')
@@ -4083,12 +4461,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         file = POINTER(FILE).in_dll(_lib, 'file')
@@ -4119,12 +4495,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         t = POINTER(struct_btf_type).in_dll(_lib, 't')
@@ -4163,6 +4537,42 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
+        t = POINTER(struct_btf_type).in_dll(_lib, 't')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        name = String.in_dll(_lib, 'name')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        res32 = __u32.in_dll(_lib, 'res32')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        ret = c_bool.in_dll(_lib, 'ret')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        e = POINTER(struct_btf_enum).in_dll(_lib, 'e')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        e = POINTER(struct_btf_enum64).in_dll(_lib, 'e')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
         len = c_int.in_dll(_lib, 'len')
         break
     except:
@@ -4173,12 +4583,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 enum_libbpf_pin_type = c_int
 LIBBPF_PIN_NONE = 0
 LIBBPF_PIN_BY_NAME = LIBBPF_PIN_NONE + 1
@@ -4266,12 +4674,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         val = __u32.in_dll(_lib, 'val')
@@ -4280,7 +4686,7 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        map_extra = __u32.in_dll(_lib, 'map_extra')
+        map_extra = __u64.in_dll(_lib, 'map_extra')
         break
     except:
         pass
@@ -4332,9 +4738,19 @@ for _lib in _libs.values():
         break
     except:
         pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
-        err = c_int.in_dll(_lib, 'err')
+        page_sz = c_long.in_dll(_lib, 'page_sz')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        mmap_sz = c_size_t.in_dll(_lib, 'mmap_sz')
         break
     except:
         pass
@@ -4362,12 +4778,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         t = POINTER(struct_btf_type).in_dll(_lib, 't')
@@ -4394,6 +4808,12 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
+        map = POINTER(struct_bpf_map).in_dll(_lib, 'map')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
         pin_root_path = String.in_dll(_lib, 'pin_root_path')
         break
     except:
@@ -4404,12 +4824,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         sh = POINTER(Elf64_Shdr).in_dll(_lib, 'sh')
@@ -4460,6 +4878,12 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
+        has_qmark_datasec = c_bool.in_dll(_lib, 'has_qmark_datasec')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
         has_func_global = c_bool.in_dll(_lib, 'has_func_global')
         break
     except:
@@ -4497,6 +4921,12 @@ for _lib in _libs.values():
 for _lib in _libs.values():
     try:
         has_enum64 = c_bool.in_dll(_lib, 'has_enum64')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        has_qmark_datasec = c_bool.in_dll(_lib, 'has_qmark_datasec')
         break
     except:
         pass
@@ -4556,16 +4986,20 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        m = POINTER(struct_btf_member).in_dll(_lib, 'm')
+        name = String.in_dll(_lib, 'name')
         break
     except:
         pass
 for _lib in _libs.values():
     try:
-        err = c_int.in_dll(_lib, 'err')
+        m = POINTER(struct_btf_member).in_dll(_lib, 'm')
         break
     except:
         pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         ext_segs = (POINTER(struct_btf_ext_info) * int(3)).in_dll(_lib,
@@ -4657,12 +5091,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         t_var = POINTER(struct_btf_type).in_dll(_lib, 't_var')
@@ -4699,12 +5131,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         t = POINTER(struct_btf_type).in_dll(_lib, 't')
@@ -4735,12 +5165,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         kern_btf = POINTER(struct_btf).in_dll(_lib, 'kern_btf')
@@ -4765,12 +5193,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         prog = POINTER(struct_bpf_program).in_dll(_lib, 'prog')
@@ -4927,12 +5353,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         name = String.in_dll(_lib, 'name')
@@ -4963,18 +5387,14 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        bind = c_int.in_dll(_lib, 'bind')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        bind = c_int.in_dll(_lib, 'bind')
-        break
-    except:
-        pass
+try:
+    bind = c_int.in_dll(_libs['./libbpf.so.1'], 'bind')
+except:
+    pass
+try:
+    bind = c_int.in_dll(_libs['./libbpf.so.1'], 'bind')
+except:
+    pass
 for _lib in _libs.values():
     try:
         type = c_int.in_dll(_lib, 'type')
@@ -5271,6 +5691,22 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
+        purged = POINTER(struct_bpf_insn).in_dll(_lib, 'purged')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        i = c_int.in_dll(_lib, 'i')
+        break
+    except:
+        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
+for _lib in _libs.values():
+    try:
         insn = POINTER(struct_bpf_insn).in_dll(_lib, 'insn')
         break
     except:
@@ -5401,12 +5837,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         i = c_int.in_dll(_lib, 'i')
@@ -5485,12 +5919,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         info = struct_bpf_map_info.in_dll(_lib, 'info')
@@ -5515,12 +5947,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         new_name = String.in_dll(_lib, 'new_name')
@@ -5545,12 +5975,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         mandatory = c_bool.in_dll(_lib, 'mandatory')
@@ -5565,13 +5993,13 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        cp = String.in_dll(_lib, 'cp')
+        ret = c_int.in_dll(_lib, 'ret')
         break
     except:
         pass
 for _lib in _libs.values():
     try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
+        insn_cnt = c_int.in_dll(_lib, 'insn_cnt')
         break
     except:
         pass
@@ -5583,40 +6011,18 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        msg = (c_char * int(128)).in_dll(_lib, 'msg')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
         map_info_len = __u32.in_dll(_lib, 'map_info_len')
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        cp = String.in_dll(_lib, 'cp')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         pin_fd = c_int.in_dll(_lib, 'pin_fd')
@@ -5629,32 +6035,36 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        cp = String.in_dll(_lib, 'cp')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         zero = c_int.in_dll(_lib, 'zero')
         break
     except:
         pass
-if _libs['libbpf.so.1'].has('bpf_map__destroy', 'cdecl'):
-    bpf_map__destroy = _libs['libbpf.so.1'].get('bpf_map__destroy', 'cdecl')
+for _lib in _libs.values():
+    try:
+        mmap_sz = c_size_t.in_dll(_lib, 'mmap_sz')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        mmaped = POINTER(None).in_dll(_lib, 'mmaped')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        prot = c_int.in_dll(_lib, 'prot')
+        break
+    except:
+        pass
+if _libs['./libbpf.so.1'].has('bpf_map__destroy', 'cdecl'):
+    bpf_map__destroy = _libs['./libbpf.so.1'].get('bpf_map__destroy', 'cdecl')
     bpf_map__destroy.argtypes = [POINTER(struct_bpf_map)]
     bpf_map__destroy.restype = None
 for _lib in _libs.values():
@@ -5669,27 +6079,13 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         map_fd = c_int.in_dll(_lib, 'map_fd')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        cp = String.in_dll(_lib, 'cp')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
         break
     except:
         pass
@@ -5711,12 +6107,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         targ_prog = POINTER(struct_bpf_program).in_dll(_lib, 'targ_prog')
@@ -5735,12 +6129,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         map = POINTER(struct_bpf_map).in_dll(_lib, 'map')
@@ -5753,12 +6145,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         nr_cpus = c_int.in_dll(_lib, 'nr_cpus')
@@ -5768,18 +6158,6 @@ for _lib in _libs.values():
 for _lib in _libs.values():
     try:
         map = POINTER(struct_bpf_map).in_dll(_lib, 'map')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        cp = String.in_dll(_lib, 'cp')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
         break
     except:
         pass
@@ -5795,15 +6173,19 @@ for _lib in _libs.values():
         break
     except:
         pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
-        err = c_int.in_dll(_lib, 'err')
+        retried = c_bool.in_dll(_lib, 'retried')
         break
     except:
         pass
 for _lib in _libs.values():
     try:
-        retried = c_bool.in_dll(_lib, 'retried')
+        ___err = c_int.in_dll(_lib, '___err')
         break
     except:
         pass
@@ -5909,12 +6291,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         fd = c_int.in_dll(_lib, 'fd')
@@ -5951,12 +6331,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         i = c_int.in_dll(_lib, 'i')
@@ -6017,12 +6395,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         sec = POINTER(struct_btf_ext_info_sec).in_dll(_lib, 'sec')
@@ -6083,12 +6459,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         insn_idx = c_int.in_dll(_lib, 'insn_idx')
@@ -6110,6 +6484,66 @@ for _lib in _libs.values():
 for _lib in _libs.values():
     try:
         i = c_int.in_dll(_lib, 'i')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        i = c_size_t.in_dll(_lib, 'i')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        cnt = c_size_t.in_dll(_lib, 'cnt')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        size = c_size_t.in_dll(_lib, 'size')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        tmp = POINTER(None).in_dll(_lib, 'tmp')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        i = c_int.in_dll(_lib, 'i')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        jt_entry_size = __u32.in_dll(_lib, 'jt_entry_size')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        sym_off = c_int.in_dll(_lib, 'sym_off')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        jt_size = c_int.in_dll(_lib, 'jt_size')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        max_entries = __u32.in_dll(_lib, 'max_entries')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        value_size = __u32.in_dll(_lib, 'value_size')
         break
     except:
         pass
@@ -6140,6 +6574,12 @@ for _lib in _libs.values():
 for _lib in _libs.values():
     try:
         ext = POINTER(struct_extern_desc).in_dll(_lib, 'ext')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        map_fd = c_int.in_dll(_lib, 'map_fd')
         break
     except:
         pass
@@ -6227,12 +6667,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         insn_idx = c_size_t.in_dll(_lib, 'insn_idx')
@@ -6265,6 +6703,24 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
+        size = c_size_t.in_dll(_lib, 'size')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        cnt = c_int.in_dll(_lib, 'cnt')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        tmp = POINTER(None).in_dll(_lib, 'tmp')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
         insns = POINTER(struct_bpf_insn).in_dll(_lib, 'insns')
         break
     except:
@@ -6275,12 +6731,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         sub_insn_idx = c_size_t.in_dll(_lib, 'sub_insn_idx')
@@ -6311,12 +6765,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         subprog = POINTER(struct_bpf_program).in_dll(_lib, 'subprog')
@@ -6329,12 +6781,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         prog = POINTER(struct_bpf_program).in_dll(_lib, 'prog')
@@ -6419,6 +6869,16 @@ for _lib in _libs.values():
         break
     except:
         pass
+
+
+class struct_user_pt_regs(Structure):
+    pass
+
+
+class struct_user_regs_struct(Structure):
+    pass
+
+
 for _lib in _libs.values():
     try:
         t = POINTER(struct_btf_type).in_dll(_lib, 't')
@@ -6461,12 +6921,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         arg_cnt = c_int.in_dll(_lib, 'arg_cnt')
@@ -6512,30 +6970,6 @@ for _lib in _libs.values():
 for _lib in _libs.values():
     try:
         name_off = c_int.in_dll(_lib, 'name_off')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        types = POINTER(__u32).in_dll(_lib, 'types')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        prog_fd = c_int.in_dll(_lib, 'prog_fd')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        btf_fd = c_int.in_dll(_lib, 'btf_fd')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        insn_cnt = c_int.in_dll(_lib, 'insn_cnt')
         break
     except:
         pass
@@ -6641,12 +7075,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         rec_idx = c_int.in_dll(_lib, 'rec_idx')
@@ -6683,12 +7115,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         relo = POINTER(struct_reloc_desc).in_dll(_lib, 'relo')
@@ -6707,8 +7137,8 @@ for _lib in _libs.values():
         break
     except:
         pass
-if _libs['libbpf.so.1'].has('bpf_object__collect_st_ops_relos', 'cdecl'):
-    bpf_object__collect_st_ops_relos = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_object__collect_st_ops_relos', 'cdecl'):
+    bpf_object__collect_st_ops_relos = _libs['./libbpf.so.1'].get(
         'bpf_object__collect_st_ops_relos', 'cdecl')
     bpf_object__collect_st_ops_relos.argtypes = [POINTER(struct_bpf_object),
         POINTER(Elf64_Shdr), POINTER(Elf_Data)]
@@ -6857,12 +7287,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         sec_desc = POINTER(struct_elf_sec_desc).in_dll(_lib, 'sec_desc')
@@ -6905,8 +7333,8 @@ for _lib in _libs.values():
         break
     except:
         pass
-if _libs['libbpf.so.1'].has('libbpf_find_attach_btf_id', 'cdecl'):
-    libbpf_find_attach_btf_id = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('libbpf_find_attach_btf_id', 'cdecl'):
+    libbpf_find_attach_btf_id = _libs['./libbpf.so.1'].get(
         'libbpf_find_attach_btf_id', 'cdecl')
     libbpf_find_attach_btf_id.argtypes = [POINTER(struct_bpf_program),
         String, POINTER(c_int), POINTER(c_int)]
@@ -6929,39 +7357,25 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         attach_name = String.in_dll(_lib, 'attach_name')
         break
     except:
         pass
-if _libs['libbpf.so.1'].has('fixup_verifier_log', 'cdecl'):
-    fixup_verifier_log = _libs['libbpf.so.1'].get('fixup_verifier_log', 'cdecl'
-        )
+if _libs['./libbpf.so.1'].has('fixup_verifier_log', 'cdecl'):
+    fixup_verifier_log = _libs['./libbpf.so.1'].get('fixup_verifier_log',
+        'cdecl')
     fixup_verifier_log.argtypes = [POINTER(struct_bpf_program), String,
         c_size_t]
     fixup_verifier_log.restype = None
 for _lib in _libs.values():
     try:
         prog_name = String.in_dll(_lib, 'prog_name')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        cp = String.in_dll(_lib, 'cp')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
         break
     except:
         pass
@@ -6985,24 +7399,6 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        btf_fd = c_int.in_dll(_lib, 'btf_fd')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        ret = c_int.in_dll(_lib, 'ret')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
         own_log_buf = c_bool.in_dll(_lib, 'own_log_buf')
         break
     except:
@@ -7013,6 +7409,16 @@ for _lib in _libs.values():
         break
     except:
         pass
+for _lib in _libs.values():
+    try:
+        ret = c_int.in_dll(_lib, 'ret')
+        break
+    except:
+        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         map = POINTER(struct_bpf_map).in_dll(_lib, 'map')
@@ -7073,12 +7479,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         spec_len = c_int.in_dll(_lib, 'spec_len')
@@ -7223,16 +7627,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
-if _libs['libbpf.so.1'].has('find_sec_def', 'cdecl'):
-    find_sec_def = _libs['libbpf.so.1'].get('find_sec_def', 'cdecl')
-    find_sec_def.argtypes = [String]
-    find_sec_def.restype = POINTER(struct_bpf_sec_def)
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         prog = POINTER(struct_bpf_program).in_dll(_lib, 'prog')
@@ -7241,16 +7639,28 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        err = c_int.in_dll(_lib, 'err')
+        i = c_size_t.in_dll(_lib, 'i')
         break
     except:
         pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
+if _libs['./libbpf.so.1'].has('find_sec_def', 'cdecl'):
+    find_sec_def = _libs['./libbpf.so.1'].get('find_sec_def', 'cdecl')
+    find_sec_def.argtypes = [String]
+    find_sec_def.restype = POINTER(struct_bpf_sec_def)
 for _lib in _libs.values():
     try:
-        obj_name = String.in_dll(_lib, 'obj_name')
+        prog = POINTER(struct_bpf_program).in_dll(_lib, 'prog')
         break
     except:
         pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         kconfig = String.in_dll(_lib, 'kconfig')
@@ -7275,18 +7685,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        tmp_name = (c_char * int(64)).in_dll(_lib, 'tmp_name')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         log_buf = String.in_dll(_lib, 'log_buf')
@@ -7307,6 +7709,12 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
+        tmp_name = (c_char * int(64)).in_dll(_lib, 'tmp_name')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
         i = c_size_t.in_dll(_lib, 'i')
         break
     except:
@@ -7317,6 +7725,8 @@ for _lib in _libs.values():
         break
     except:
         pass
+kallsyms_cb_t = CFUNCTYPE(UNCHECKED(c_int), c_ulonglong, c_char, String,
+    POINTER(None))
 for _lib in _libs.values():
     try:
         sym_type = c_char.in_dll(_lib, 'sym_type')
@@ -7341,12 +7751,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         f = POINTER(FILE).in_dll(_lib, 'f')
@@ -7368,6 +7776,12 @@ for _lib in _libs.values():
 for _lib in _libs.values():
     try:
         ext = POINTER(struct_extern_desc).in_dll(_lib, 'ext')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        res = String.in_dll(_lib, 'res')
         break
     except:
         pass
@@ -7395,12 +7809,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         targ_var = POINTER(struct_btf_type).in_dll(_lib, 'targ_var')
@@ -7449,12 +7861,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         local_type = POINTER(struct_btf_type).in_dll(_lib, 'local_type')
@@ -7533,12 +7943,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         need_config = c_bool.in_dll(_lib, 'need_config')
@@ -7569,12 +7977,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         i = c_int.in_dll(_lib, 'i')
@@ -7590,6 +7996,12 @@ for _lib in _libs.values():
 for _lib in _libs.values():
     try:
         value = __u64.in_dll(_lib, 'value')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        type = POINTER(struct_btf_type).in_dll(_lib, 'type')
         break
     except:
         pass
@@ -7625,13 +8037,7 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        i = c_int.in_dll(_lib, 'i')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
+        map = POINTER(struct_bpf_map).in_dll(_lib, 'map')
         break
     except:
         pass
@@ -7643,16 +8049,24 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        cp = String.in_dll(_lib, 'cp')
+        i = c_int.in_dll(_lib, 'i')
         break
     except:
         pass
 for _lib in _libs.values():
     try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
+        i = c_int.in_dll(_lib, 'i')
         break
     except:
         pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         dname = String.in_dll(_lib, 'dname')
@@ -7665,24 +8079,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        cp = String.in_dll(_lib, 'cp')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         st_fs = struct_statfs.in_dll(_lib, 'st_fs')
@@ -7701,68 +8101,34 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        cp = String.in_dll(_lib, 'cp')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        cp = String.in_dll(_lib, 'cp')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         new = String.in_dll(_lib, 'new')
         break
     except:
         pass
-if _libs['libbpf.so.1'].has('bpf_map__get_pin_path', 'cdecl'):
-    bpf_map__get_pin_path = _libs['libbpf.so.1'].get('bpf_map__get_pin_path',
+if _libs['./libbpf.so.1'].has('bpf_map__get_pin_path', 'cdecl'):
+    bpf_map__get_pin_path = _libs['./libbpf.so.1'].get('bpf_map__get_pin_path',
         'cdecl')
     bpf_map__get_pin_path.argtypes = [POINTER(struct_bpf_map)]
     bpf_map__get_pin_path.restype = c_char_p
@@ -7772,12 +8138,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         pin_path = String.in_dll(_lib, 'pin_path')
@@ -7796,12 +8160,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         pin_path = String.in_dll(_lib, 'pin_path')
@@ -7826,48 +8188,34 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         prog = POINTER(struct_bpf_program).in_dll(_lib, 'prog')
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         buf = (c_char * int(4096)).in_dll(_lib, 'buf')
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        mmap_sz = c_size_t.in_dll(_lib, 'mmap_sz')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         ___err = c_int.in_dll(_lib, '___err')
@@ -7916,71 +8264,78 @@ for _lib in _libs.values():
         break
     except:
         pass
-if _libs['libbpf.so.1'].has('bpf_program__get_type', 'cdecl'):
-    bpf_program__get_type = _libs['libbpf.so.1'].get('bpf_program__get_type',
+if _libs['./libbpf.so.1'].has('bpf_program__get_type', 'cdecl'):
+    bpf_program__get_type = _libs['./libbpf.so.1'].get('bpf_program__get_type',
         'cdecl')
     bpf_program__get_type.argtypes = [POINTER(struct_bpf_program)]
     bpf_program__get_type.restype = enum_bpf_prog_type
-if _libs['libbpf.so.1'].has('bpf_program__get_expected_attach_type', 'cdecl'):
-    bpf_program__get_expected_attach_type = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('bpf_program__get_expected_attach_type', 'cdecl'
+    ):
+    bpf_program__get_expected_attach_type = _libs['./libbpf.so.1'].get(
         'bpf_program__get_expected_attach_type', 'cdecl')
     bpf_program__get_expected_attach_type.argtypes = [POINTER(
         struct_bpf_program)]
     bpf_program__get_expected_attach_type.restype = enum_bpf_attach_type
-if _libs['libbpf.so.1'].has('attach_kprobe', 'cdecl'):
-    attach_kprobe = _libs['libbpf.so.1'].get('attach_kprobe', 'cdecl')
+if _libs['./libbpf.so.1'].has('attach_kprobe', 'cdecl'):
+    attach_kprobe = _libs['./libbpf.so.1'].get('attach_kprobe', 'cdecl')
     attach_kprobe.argtypes = [POINTER(struct_bpf_program), c_long, POINTER(
         POINTER(struct_bpf_link))]
     attach_kprobe.restype = c_int
-if _libs['libbpf.so.1'].has('attach_uprobe', 'cdecl'):
-    attach_uprobe = _libs['libbpf.so.1'].get('attach_uprobe', 'cdecl')
+if _libs['./libbpf.so.1'].has('attach_uprobe', 'cdecl'):
+    attach_uprobe = _libs['./libbpf.so.1'].get('attach_uprobe', 'cdecl')
     attach_uprobe.argtypes = [POINTER(struct_bpf_program), c_long, POINTER(
         POINTER(struct_bpf_link))]
     attach_uprobe.restype = c_int
-if _libs['libbpf.so.1'].has('attach_ksyscall', 'cdecl'):
-    attach_ksyscall = _libs['libbpf.so.1'].get('attach_ksyscall', 'cdecl')
+if _libs['./libbpf.so.1'].has('attach_ksyscall', 'cdecl'):
+    attach_ksyscall = _libs['./libbpf.so.1'].get('attach_ksyscall', 'cdecl')
     attach_ksyscall.argtypes = [POINTER(struct_bpf_program), c_long,
         POINTER(POINTER(struct_bpf_link))]
     attach_ksyscall.restype = c_int
-if _libs['libbpf.so.1'].has('attach_usdt', 'cdecl'):
-    attach_usdt = _libs['libbpf.so.1'].get('attach_usdt', 'cdecl')
+if _libs['./libbpf.so.1'].has('attach_usdt', 'cdecl'):
+    attach_usdt = _libs['./libbpf.so.1'].get('attach_usdt', 'cdecl')
     attach_usdt.argtypes = [POINTER(struct_bpf_program), c_long, POINTER(
         POINTER(struct_bpf_link))]
     attach_usdt.restype = c_int
-if _libs['libbpf.so.1'].has('attach_tp', 'cdecl'):
-    attach_tp = _libs['libbpf.so.1'].get('attach_tp', 'cdecl')
+if _libs['./libbpf.so.1'].has('attach_tp', 'cdecl'):
+    attach_tp = _libs['./libbpf.so.1'].get('attach_tp', 'cdecl')
     attach_tp.argtypes = [POINTER(struct_bpf_program), c_long, POINTER(
         POINTER(struct_bpf_link))]
     attach_tp.restype = c_int
-if _libs['libbpf.so.1'].has('attach_raw_tp', 'cdecl'):
-    attach_raw_tp = _libs['libbpf.so.1'].get('attach_raw_tp', 'cdecl')
+if _libs['./libbpf.so.1'].has('attach_raw_tp', 'cdecl'):
+    attach_raw_tp = _libs['./libbpf.so.1'].get('attach_raw_tp', 'cdecl')
     attach_raw_tp.argtypes = [POINTER(struct_bpf_program), c_long, POINTER(
         POINTER(struct_bpf_link))]
     attach_raw_tp.restype = c_int
-if _libs['libbpf.so.1'].has('attach_trace', 'cdecl'):
-    attach_trace = _libs['libbpf.so.1'].get('attach_trace', 'cdecl')
+if _libs['./libbpf.so.1'].has('attach_trace', 'cdecl'):
+    attach_trace = _libs['./libbpf.so.1'].get('attach_trace', 'cdecl')
     attach_trace.argtypes = [POINTER(struct_bpf_program), c_long, POINTER(
         POINTER(struct_bpf_link))]
     attach_trace.restype = c_int
-if _libs['libbpf.so.1'].has('attach_kprobe_multi', 'cdecl'):
-    attach_kprobe_multi = _libs['libbpf.so.1'].get('attach_kprobe_multi',
+if _libs['./libbpf.so.1'].has('attach_kprobe_multi', 'cdecl'):
+    attach_kprobe_multi = _libs['./libbpf.so.1'].get('attach_kprobe_multi',
         'cdecl')
     attach_kprobe_multi.argtypes = [POINTER(struct_bpf_program), c_long,
         POINTER(POINTER(struct_bpf_link))]
     attach_kprobe_multi.restype = c_int
-if _libs['libbpf.so.1'].has('attach_uprobe_multi', 'cdecl'):
-    attach_uprobe_multi = _libs['libbpf.so.1'].get('attach_uprobe_multi',
+if _libs['./libbpf.so.1'].has('attach_kprobe_session', 'cdecl'):
+    attach_kprobe_session = _libs['./libbpf.so.1'].get('attach_kprobe_session',
+        'cdecl')
+    attach_kprobe_session.argtypes = [POINTER(struct_bpf_program), c_long,
+        POINTER(POINTER(struct_bpf_link))]
+    attach_kprobe_session.restype = c_int
+if _libs['./libbpf.so.1'].has('attach_uprobe_multi', 'cdecl'):
+    attach_uprobe_multi = _libs['./libbpf.so.1'].get('attach_uprobe_multi',
         'cdecl')
     attach_uprobe_multi.argtypes = [POINTER(struct_bpf_program), c_long,
         POINTER(POINTER(struct_bpf_link))]
     attach_uprobe_multi.restype = c_int
-if _libs['libbpf.so.1'].has('attach_lsm', 'cdecl'):
-    attach_lsm = _libs['libbpf.so.1'].get('attach_lsm', 'cdecl')
+if _libs['./libbpf.so.1'].has('attach_lsm', 'cdecl'):
+    attach_lsm = _libs['./libbpf.so.1'].get('attach_lsm', 'cdecl')
     attach_lsm.argtypes = [POINTER(struct_bpf_program), c_long, POINTER(
         POINTER(struct_bpf_link))]
     attach_lsm.restype = c_int
-if _libs['libbpf.so.1'].has('attach_iter', 'cdecl'):
-    attach_iter = _libs['libbpf.so.1'].get('attach_iter', 'cdecl')
+if _libs['./libbpf.so.1'].has('attach_iter', 'cdecl'):
+    attach_iter = _libs['./libbpf.so.1'].get('attach_iter', 'cdecl')
     attach_iter.argtypes = [POINTER(struct_bpf_program), c_long, POINTER(
         POINTER(struct_bpf_link))]
     attach_iter.restype = c_int
@@ -8071,6 +8426,12 @@ for _lib in _libs.values():
 for _lib in _libs.values():
     try:
         i = c_size_t.in_dll(_lib, 'i')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        type = POINTER(struct_btf_type).in_dll(_lib, 'type')
         break
     except:
         pass
@@ -8188,12 +8549,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         info = struct_bpf_prog_info.in_dll(_lib, 'info')
@@ -8212,12 +8571,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         ret = c_int.in_dll(_lib, 'ret')
@@ -8227,6 +8584,24 @@ for _lib in _libs.values():
 for _lib in _libs.values():
     try:
         i = c_int.in_dll(_lib, 'i')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        mod_len = c_int.in_dll(_lib, 'mod_len')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        fn_name = String.in_dll(_lib, 'fn_name')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        mod_name = String.in_dll(_lib, 'mod_name')
         break
     except:
         pass
@@ -8248,12 +8623,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         type_names = String.in_dll(_lib, 'type_names')
@@ -8328,12 +8701,6 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
         mmap_old_sz = c_size_t.in_dll(_lib, 'mmap_old_sz')
         break
     except:
@@ -8341,6 +8708,16 @@ for _lib in _libs.values():
 for _lib in _libs.values():
     try:
         mmap_new_sz = c_size_t.in_dll(_lib, 'mmap_new_sz')
+        break
+    except:
+        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
+for _lib in _libs.values():
+    try:
+        actual_sz = c_size_t.in_dll(_lib, 'actual_sz')
         break
     except:
         pass
@@ -8374,36 +8751,26 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         ret = c_int.in_dll(_lib, 'ret')
@@ -8412,34 +8779,32 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        err = c_int.in_dll(_lib, 'err')
+        prog_fd = c_int.in_dll(_lib, 'prog_fd')
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        link = POINTER(struct_bpf_link).in_dll(_lib, 'link')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
+try:
+    link = POINTER(struct_bpf_link).in_dll(_libs['./libbpf.so.1'], 'link')
+except:
+    pass
 for _lib in _libs.values():
     try:
         fd = c_int.in_dll(_lib, 'fd')
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 
 
 class struct_bpf_link_perf(Structure):
@@ -8451,34 +8816,24 @@ struct_bpf_link_perf.__slots__ = ['link', 'perf_event_fd',
 struct_bpf_link_perf._fields_ = [('link', struct_bpf_link), (
     'perf_event_fd', c_int), ('legacy_probe_name', String), (
     'legacy_is_kprobe', c_bool), ('legacy_is_retprobe', c_bool)]
-if _libs['libbpf.so.1'].has('remove_kprobe_event_legacy', 'cdecl'):
-    remove_kprobe_event_legacy = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('remove_kprobe_event_legacy', 'cdecl'):
+    remove_kprobe_event_legacy = _libs['./libbpf.so.1'].get(
         'remove_kprobe_event_legacy', 'cdecl')
     remove_kprobe_event_legacy.argtypes = [String, c_bool]
     remove_kprobe_event_legacy.restype = c_int
-if _libs['libbpf.so.1'].has('remove_uprobe_event_legacy', 'cdecl'):
-    remove_uprobe_event_legacy = _libs['libbpf.so.1'].get(
+if _libs['./libbpf.so.1'].has('remove_uprobe_event_legacy', 'cdecl'):
+    remove_uprobe_event_legacy = _libs['./libbpf.so.1'].get(
         'remove_uprobe_event_legacy', 'cdecl')
     remove_uprobe_event_legacy.argtypes = [String, c_bool]
     remove_uprobe_event_legacy.restype = c_int
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        link = POINTER(struct_bpf_link_perf).in_dll(_lib, 'link')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
+try:
+    link = POINTER(struct_bpf_link_perf).in_dll(_libs['./libbpf.so.1'], 'link')
+except:
+    pass
 for _lib in _libs.values():
     try:
         prog_fd = c_int.in_dll(_lib, 'prog_fd')
@@ -8491,30 +8846,20 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         force_ioctl_attach = c_bool.in_dll(_lib, 'force_ioctl_attach')
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        buf = (c_char * int(128)).in_dll(_lib, 'buf')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         ret = c_int.in_dll(_lib, 'ret')
@@ -8565,12 +8910,6 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
         type = c_int.in_dll(_lib, 'type')
         break
     except:
@@ -8599,12 +8938,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         ap = c_void_p.in_dll(_lib, 'ap')
@@ -8643,12 +8980,6 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
         type = c_int.in_dll(_lib, 'type')
         break
     except:
@@ -8659,12 +8990,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         syscall_name = (c_char * int(64)).in_dll(_lib, 'syscall_name')
@@ -8685,7 +9014,7 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        probe_name = (c_char * int(128)).in_dll(_lib, 'probe_name')
+        probe_name = (c_char * int(64)).in_dll(_lib, 'probe_name')
         break
     except:
         pass
@@ -8697,22 +9026,14 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
         legacy_probe = String.in_dll(_lib, 'legacy_probe')
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        link = POINTER(struct_bpf_link).in_dll(_lib, 'link')
-        break
-    except:
-        pass
+try:
+    link = POINTER(struct_bpf_link).in_dll(_libs['./libbpf.so.1'], 'link')
+except:
+    pass
 for _lib in _libs.values():
     try:
         offset = c_size_t.in_dll(_lib, 'offset')
@@ -8737,15 +9058,13 @@ for _lib in _libs.values():
         break
     except:
         pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        probe_name = (c_char * int(256)).in_dll(_lib, 'probe_name')
+        probe_name = (c_char * int(64)).in_dll(_lib, 'probe_name')
         break
     except:
         pass
@@ -8785,9 +9104,25 @@ for _lib in _libs.values():
         break
     except:
         pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
-        err = c_int.in_dll(_lib, 'err')
+        sym_trim = (c_char * int(256)).in_dll(_lib, 'sym_trim')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        psym_trim = String.in_dll(_lib, 'psym_trim')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        sym_sfx = String.in_dll(_lib, 'sym_sfx')
         break
     except:
         pass
@@ -8816,12 +9151,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         ret = c_int.in_dll(_lib, 'ret')
@@ -8882,12 +9215,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         sym_addr = c_ulonglong.in_dll(_lib, 'sym_addr')
@@ -8896,28 +9227,24 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        link = POINTER(struct_bpf_link).in_dll(_lib, 'link')
+        attach_type = enum_bpf_attach_type.in_dll(_lib, 'attach_type')
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
-        break
-    except:
-        pass
+try:
+    link = POINTER(struct_bpf_link).in_dll(_libs['./libbpf.so.1'], 'link')
+except:
+    pass
 for _lib in _libs.values():
     try:
         addrs = POINTER(c_ulong).in_dll(_lib, 'addrs')
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         link_fd = c_int.in_dll(_lib, 'link_fd')
@@ -8932,6 +9259,24 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
+        retprobe = c_bool.in_dll(_lib, 'retprobe')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        session = c_bool.in_dll(_lib, 'session')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        unique_match = c_bool.in_dll(_lib, 'unique_match')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
         cookies = POINTER(__u64).in_dll(_lib, 'cookies')
         break
     except:
@@ -8939,12 +9284,6 @@ for _lib in _libs.values():
 for _lib in _libs.values():
     try:
         syms = POINTER(POINTER(c_char)).in_dll(_lib, 'syms')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        retprobe = c_bool.in_dll(_lib, 'retprobe')
         break
     except:
         pass
@@ -9004,6 +9343,24 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
+        spec = String.in_dll(_lib, 'spec')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        pattern = String.in_dll(_lib, 'pattern')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        n = c_int.in_dll(_lib, 'n')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
         probe_type = String.in_dll(_lib, 'probe_type')
         break
     except:
@@ -9029,12 +9386,6 @@ for _lib in _libs.values():
 for _lib in _libs.values():
     try:
         ret = c_int.in_dll(_lib, 'ret')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        i = c_int.in_dll(_lib, 'i')
         break
     except:
         pass
@@ -9068,12 +9419,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         archive = POINTER(struct_zip_archive).in_dll(_lib, 'archive')
@@ -9148,10 +9497,14 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        err = c_int.in_dll(_lib, 'err')
+        attach_type = enum_bpf_attach_type.in_dll(_lib, 'attach_type')
         break
     except:
         pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         link_fd = c_int.in_dll(_lib, 'link_fd')
@@ -9164,21 +9517,25 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        link = POINTER(struct_bpf_link).in_dll(_lib, 'link')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
-        break
-    except:
-        pass
+try:
+    link = POINTER(struct_bpf_link).in_dll(_libs['./libbpf.so.1'], 'link')
+except:
+    pass
 for _lib in _libs.values():
     try:
         full_path = (c_char * int(4096)).in_dll(_lib, 'full_path')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        retprobe = c_bool.in_dll(_lib, 'retprobe')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        session = c_bool.in_dll(_lib, 'session')
         break
     except:
         pass
@@ -9214,12 +9571,6 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
         legacy_probe = String.in_dll(_lib, 'legacy_probe')
         break
     except:
@@ -9236,12 +9587,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        link = POINTER(struct_bpf_link).in_dll(_lib, 'link')
-        break
-    except:
-        pass
+try:
+    link = POINTER(struct_bpf_link).in_dll(_libs['./libbpf.so.1'], 'link')
+except:
+    pass
 for _lib in _libs.values():
     try:
         ref_ctr_off = c_size_t.in_dll(_lib, 'ref_ctr_off')
@@ -9254,12 +9603,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         retprobe = c_bool.in_dll(_lib, 'retprobe')
@@ -9286,7 +9633,7 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        probe_name = (c_char * int(4096 + 64)).in_dll(_lib, 'probe_name')
+        probe_name = (c_char * int(64)).in_dll(_lib, 'probe_name')
         break
     except:
         pass
@@ -9350,24 +9697,20 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        link = POINTER(struct_bpf_link).in_dll(_lib, 'link')
-        break
-    except:
-        pass
+try:
+    link = POINTER(struct_bpf_link).in_dll(_libs['./libbpf.so.1'], 'link')
+except:
+    pass
 for _lib in _libs.values():
     try:
         usdt_cookie = __u64.in_dll(_lib, 'usdt_cookie')
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         path = String.in_dll(_lib, 'path')
@@ -9398,12 +9741,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         file = (c_char * int(4096)).in_dll(_lib, 'file')
@@ -9430,12 +9771,6 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
         tp_id = c_int.in_dll(_lib, 'tp_id')
         break
     except:
@@ -9446,36 +9781,24 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        link = POINTER(struct_bpf_link).in_dll(_lib, 'link')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
+try:
+    link = POINTER(struct_bpf_link).in_dll(_libs['./libbpf.so.1'], 'link')
+except:
+    pass
 for _lib in _libs.values():
     try:
         pfd = c_int.in_dll(_lib, 'pfd')
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         sec_name = String.in_dll(_lib, 'sec_name')
@@ -9494,18 +9817,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        link = POINTER(struct_bpf_link).in_dll(_lib, 'link')
-        break
-    except:
-        pass
+try:
+    link = POINTER(struct_bpf_link).in_dll(_libs['./libbpf.so.1'], 'link')
+except:
+    pass
 for _lib in _libs.values():
     try:
         prog_fd = c_int.in_dll(_lib, 'prog_fd')
@@ -9536,18 +9851,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        link = POINTER(struct_bpf_link).in_dll(_lib, 'link')
-        break
-    except:
-        pass
+try:
+    link = POINTER(struct_bpf_link).in_dll(_libs['./libbpf.so.1'], 'link')
+except:
+    pass
 for _lib in _libs.values():
     try:
         prog_fd = c_int.in_dll(_lib, 'prog_fd')
@@ -9566,18 +9873,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        link = POINTER(struct_bpf_link).in_dll(_lib, 'link')
-        break
-    except:
-        pass
+try:
+    link = POINTER(struct_bpf_link).in_dll(_libs['./libbpf.so.1'], 'link')
+except:
+    pass
 for _lib in _libs.values():
     try:
         prog_fd = c_int.in_dll(_lib, 'prog_fd')
@@ -9587,6 +9886,18 @@ for _lib in _libs.values():
 for _lib in _libs.values():
     try:
         link_fd = c_int.in_dll(_lib, 'link_fd')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        relative_id = __u32.in_dll(_lib, 'relative_id')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
+        relative_fd = c_int.in_dll(_lib, 'relative_fd')
         break
     except:
         pass
@@ -9620,18 +9931,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        link = POINTER(struct_bpf_link).in_dll(_lib, 'link')
-        break
-    except:
-        pass
+try:
+    link = POINTER(struct_bpf_link).in_dll(_libs['./libbpf.so.1'], 'link')
+except:
+    pass
 for _lib in _libs.values():
     try:
         prog_fd = c_int.in_dll(_lib, 'prog_fd')
@@ -9650,12 +9953,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        link = POINTER(struct_bpf_link).in_dll(_lib, 'link')
-        break
-    except:
-        pass
+try:
+    link = POINTER(struct_bpf_link).in_dll(_libs['./libbpf.so.1'], 'link')
+except:
+    pass
 for _lib in _libs.values():
     try:
         prog_fd = c_int.in_dll(_lib, 'prog_fd')
@@ -9668,24 +9969,14 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        errmsg = (c_char * int(128)).in_dll(_lib, 'errmsg')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        link = POINTER(struct_bpf_link).in_dll(_lib, 'link')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    link = POINTER(struct_bpf_link).in_dll(_libs['./libbpf.so.1'], 'link')
+except:
+    pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 
 
 class struct_bpf_link_struct_ops(Structure):
@@ -9707,24 +9998,21 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        link = POINTER(struct_bpf_link_struct_ops).in_dll(_lib, 'link')
-        break
-    except:
-        pass
+try:
+    link = POINTER(struct_bpf_link_struct_ops).in_dll(_libs['./libbpf.so.1'
+        ], 'link')
+except:
+    pass
 for _lib in _libs.values():
     try:
         zero = __u32.in_dll(_lib, 'zero')
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         fd = c_int.in_dll(_lib, 'fd')
@@ -9744,12 +10032,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 bpf_perf_event_print_t = CFUNCTYPE(UNCHECKED(enum_bpf_perf_event_ret),
     POINTER(struct_perf_event_header), POINTER(None))
 for _lib in _libs.values():
@@ -9863,21 +10149,13 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        msg = (c_char * int(128)).in_dll(_lib, 'msg')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
-if _libs['libbpf.so.1'].has('__perf_buffer__new', 'cdecl'):
-    __perf_buffer__new = _libs['libbpf.so.1'].get('__perf_buffer__new', 'cdecl'
-        )
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
+if _libs['./libbpf.so.1'].has('__perf_buffer__new', 'cdecl'):
+    __perf_buffer__new = _libs['./libbpf.so.1'].get('__perf_buffer__new',
+        'cdecl')
     __perf_buffer__new.argtypes = [c_int, c_size_t, POINTER(
         struct_perf_buffer_params)]
     __perf_buffer__new.restype = POINTER(struct_perf_buffer)
@@ -9901,12 +10179,6 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        msg = (c_char * int(128)).in_dll(_lib, 'msg')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
         pb = POINTER(struct_perf_buffer).in_dll(_lib, 'pb')
         break
     except:
@@ -9923,12 +10195,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         i = c_int.in_dll(_lib, 'i')
@@ -10031,12 +10301,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         cpu_buf = POINTER(struct_perf_cpu_buf).in_dll(_lib, 'cpu_buf')
@@ -10067,12 +10335,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         cpu_buf = POINTER(struct_perf_cpu_buf).in_dll(_lib, 'cpu_buf')
@@ -10091,18 +10357,26 @@ for _lib in _libs.values():
         break
     except:
         pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
-        err = c_int.in_dll(_lib, 'err')
+        prog_fd = c_int.in_dll(_lib, 'prog_fd')
         break
     except:
         pass
 for _lib in _libs.values():
     try:
-        err = c_int.in_dll(_lib, 'err')
+        map_fd = c_int.in_dll(_lib, 'map_fd')
         break
     except:
         pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         n = c_int.in_dll(_lib, 'n')
@@ -10139,12 +10413,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         len = c_int.in_dll(_lib, 'len')
@@ -10157,12 +10429,10 @@ for _lib in _libs.values():
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         n = c_int.in_dll(_lib, 'n')
@@ -10195,6 +10465,12 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
+        map_skel = POINTER(struct_bpf_map_skeleton).in_dll(_lib, 'map_skel')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
         map = POINTER(POINTER(struct_bpf_map)).in_dll(_lib, 'map')
         break
     except:
@@ -10219,6 +10495,12 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
+        prog_skel = POINTER(struct_bpf_prog_skeleton).in_dll(_lib, 'prog_skel')
+        break
+    except:
+        pass
+for _lib in _libs.values():
+    try:
         prog = POINTER(POINTER(struct_bpf_program)).in_dll(_lib, 'prog')
         break
     except:
@@ -10235,18 +10517,20 @@ for _lib in _libs.values():
         break
     except:
         pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
-        err = c_int.in_dll(_lib, 'err')
+        p = struct_bpf_program.in_dll(_lib, 'p')
         break
     except:
         pass
-for _lib in _libs.values():
-    try:
-        err = c_int.in_dll(_lib, 'err')
-        break
-    except:
-        pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
         len = c_int.in_dll(_lib, 'len')
@@ -10319,9 +10603,13 @@ for _lib in _libs.values():
         break
     except:
         pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
-        err = c_int.in_dll(_lib, 'err')
+        map_skel = POINTER(struct_bpf_map_skeleton).in_dll(_lib, 'map_skel')
         break
     except:
         pass
@@ -10333,37 +10621,17 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        mmap_sz = c_size_t.in_dll(_lib, 'mmap_sz')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        prot = c_int.in_dll(_lib, 'prot')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        map_fd = c_int.in_dll(_lib, 'map_fd')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
-        mmaped = POINTER(POINTER(None)).in_dll(_lib, 'mmaped')
-        break
-    except:
-        pass
-for _lib in _libs.values():
-    try:
         i = c_int.in_dll(_lib, 'i')
         break
     except:
         pass
+try:
+    err = c_int.in_dll(_libs['./libbpf.so.1'], 'err')
+except:
+    pass
 for _lib in _libs.values():
     try:
-        err = c_int.in_dll(_lib, 'err')
+        prog_skel = POINTER(struct_bpf_prog_skeleton).in_dll(_lib, 'prog_skel')
         break
     except:
         pass
@@ -10373,12 +10641,28 @@ for _lib in _libs.values():
         break
     except:
         pass
+try:
+    link = POINTER(POINTER(struct_bpf_link)).in_dll(_libs['./libbpf.so.1'],
+        'link')
+except:
+    pass
 for _lib in _libs.values():
     try:
-        link = POINTER(POINTER(struct_bpf_link)).in_dll(_lib, 'link')
+        map_skel = POINTER(struct_bpf_map_skeleton).in_dll(_lib, 'map_skel')
         break
     except:
         pass
+for _lib in _libs.values():
+    try:
+        map = POINTER(struct_bpf_map).in_dll(_lib, 'map')
+        break
+    except:
+        pass
+try:
+    link = POINTER(POINTER(struct_bpf_link)).in_dll(_libs['./libbpf.so.1'],
+        'link')
+except:
+    pass
 for _lib in _libs.values():
     try:
         i = c_int.in_dll(_lib, 'i')
@@ -10387,12 +10671,24 @@ for _lib in _libs.values():
         pass
 for _lib in _libs.values():
     try:
-        link = POINTER(POINTER(struct_bpf_link)).in_dll(_lib, 'link')
+        prog_skel = POINTER(struct_bpf_prog_skeleton).in_dll(_lib, 'prog_skel')
         break
     except:
         pass
 try:
-    bpf_perf_event_opts__last_field = force_ioctl_attach
+    link = POINTER(POINTER(struct_bpf_link)).in_dll(_libs['./libbpf.so.1'],
+        'link')
+except:
+    pass
+for _lib in _libs.values():
+    try:
+        map_skel = POINTER(struct_bpf_map_skeleton).in_dll(_lib, 'map_skel')
+        break
+    except:
+        pass
+try:
+    link = POINTER(POINTER(struct_bpf_link)).in_dll(_libs['./libbpf.so.1'],
+        'link')
 except:
     pass
 try:
@@ -10400,11 +10696,11 @@ try:
 except:
     pass
 try:
-    bpf_kprobe_multi_opts__last_field = retprobe
+    bpf_kprobe_multi_opts__last_field = unique_match
 except:
     pass
 try:
-    bpf_uprobe_multi_opts__last_field = retprobe
+    bpf_uprobe_multi_opts__last_field = session
 except:
     pass
 try:
@@ -10417,6 +10713,10 @@ except:
     pass
 try:
     bpf_usdt_opts__last_field = usdt_cookie
+except:
+    pass
+try:
+    bpf_netfilter_opts__last_field = flags
 except:
     pass
 try:
@@ -10450,15 +10750,15 @@ try:
 except:
     pass
 try:
+    MAX_EVENT_NAME_LEN = 64
+except:
+    pass
+try:
     BPF_FS_DEFAULT_PATH = '/sys/fs/bpf'
 except:
     pass
 try:
     BPF_INSN_SZ = sizeof(struct_bpf_insn)
-except:
-    pass
-try:
-    STRERR_BUFSIZE = 128
 except:
     pass
 
@@ -10508,7 +10808,15 @@ try:
 except:
     pass
 try:
+    ARENA_SEC = '.addr_space.1'
+except:
+    pass
+try:
     STRUCT_OPS_VALUE_PREFIX = 'bpf_struct_ops_'
+except:
+    pass
+try:
+    MFD_NOEXEC_SEAL = 8
 except:
     pass
 try:
@@ -10575,10 +10883,12 @@ bpf_ksyscall_opts = struct_bpf_ksyscall_opts
 bpf_uprobe_opts = struct_bpf_uprobe_opts
 bpf_usdt_opts = struct_bpf_usdt_opts
 bpf_tracepoint_opts = struct_bpf_tracepoint_opts
+bpf_raw_tracepoint_opts = struct_bpf_raw_tracepoint_opts
 bpf_trace_opts = struct_bpf_trace_opts
 bpf_netfilter_opts = struct_bpf_netfilter_opts
 bpf_tcx_opts = struct_bpf_tcx_opts
 bpf_netkit_opts = struct_bpf_netkit_opts
+bpf_cgroup_opts = struct_bpf_cgroup_opts
 bpf_iter_attach_opts = struct_bpf_iter_attach_opts
 bpf_xdp_set_link_opts = struct_bpf_xdp_set_link_opts
 bpf_xdp_attach_opts = struct_bpf_xdp_attach_opts
@@ -10606,12 +10916,15 @@ bpf_linker = struct_bpf_linker
 libbpf_prog_handler_opts = struct_libbpf_prog_handler_opts
 reloc_desc = struct_reloc_desc
 bpf_sec_def = struct_bpf_sec_def
+bpf_light_subprog = struct_bpf_light_subprog
 bpf_struct_ops = struct_bpf_struct_ops
 bpf_map_def = struct_bpf_map_def
 extern_desc = struct_extern_desc
 module_btf = struct_module_btf
 elf_sec_desc = struct_elf_sec_desc
 elf_state = struct_elf_state
+user_pt_regs = struct_user_pt_regs
+user_regs_struct = struct_user_regs_struct
 bpf_link_perf = struct_bpf_link_perf
 kprobe_multi_resolve = struct_kprobe_multi_resolve
 avail_kallsyms_data = struct_avail_kallsyms_data

@@ -143,11 +143,23 @@ def test_struct_packing():
 
             print(f"Symbol {name_demangled} OK, size {real_size}")
 
+def alloc_writable_buf_size(size: int) -> "ctypes._Pointer[ctypes.Structure]":
+    assert size
+    ptr = ctypes.create_string_buffer(init=bytes(size), size=size)
+    return ctypes.cast(ptr, ctypes.POINTER(ctypes.c_char))
+
 def alloc_writable_buf(type: Type[ctypes.Structure]) -> "ctypes._Pointer[ctypes.Structure]":
     size = ctypes.sizeof(type)
     assert size
     ptr = ctypes.create_string_buffer(init=bytes(size), size=size)
     return ctypes.cast(ptr, ctypes.POINTER(type))
+
+def alloc_writable_buf_bytes(content: bytes) -> "ctypes._Pointer[ctypes.Structure]":
+    buf = alloc_writable_buf_size(len(content) + 1)
+    for i, byte in enumerate(content):
+        buf[i] = byte
+    buf[i + 1] = b'\0'
+    return buf
 
 
 def skel_map_update_elem(fd: int, key: int, value: bytes, flags: int):
@@ -196,8 +208,11 @@ def patch_bpf_map(
         ):
     
     assert isinstance(section_name, str) and isinstance(new_value, bytes)
-    
-    map_fd : int = libbpf.bpf_object__find_map_fd_by_name(obj_ptr, libbpf.String(bytes(section_name, "ascii")))
+
+    buf = alloc_writable_buf_bytes(content=section_name.encode("ascii"))
+
+    # map_fd : int = libbpf.bpf_object__find_map_fd_by_name(obj_ptr, libbpf.String(bytes(section_name, "ascii")))
+    map_fd : int = libbpf.bpf_object__find_map_fd_by_name(obj_ptr, buf)
     if map_fd <= 0:
         raise ValueError(f"patch_bpf_map: lookup failed for {section_name}")
     
@@ -224,19 +239,21 @@ def bpf__create_skeleton(bpf_elf_bytes: bytes, name: str) -> "ctypes._Pointer[li
     s = s_ptr.contents
 
     s.sz = ctypes.sizeof(libbpf.bpf_object_skeleton)
-    s.name = libbpf.String(f"uprobe_bpf__{name}".encode())
+    # s.name = libbpf.String(f"uprobe_bpf__{name}".encode())
+    content : bytes = f"uprobe_bpf__{name}".encode()
+    s.name = alloc_writable_buf_size(len(content) + 1)
     s.obj = ctypes.cast(o_ptr, ctypes.POINTER(o_ptr.__class__))
     
 
     ################    MAPS
     s.map_cnt = 0 # NOTE: set by libbpf later
     s.map_skel_sz = ctypes.sizeof(libbpf.bpf_map_skeleton)
-    s.maps = alloc_writable_buf(libbpf.bpf_map_skeleton)
+    s.maps = None # alloc_writable_buf(libbpf.bpf_map_skeleton)
 
     ################    PROGS
     s.prog_cnt = 0 # NOTE: set by libbpf later
     s.prog_skel_sz = ctypes.sizeof(libbpf.bpf_prog_skeleton)
-    s.progs = alloc_writable_buf(libbpf.bpf_prog_skeleton)
+    s.progs = None # alloc_writable_buf(libbpf.bpf_prog_skeleton)
 
     bpf_elf_size = len(bpf_elf_bytes)
     
@@ -432,7 +449,18 @@ def preprocess_bpf_elf(elf_bytes: bytes) -> bytes:
     return elf_bytes
 
 def sloppy_guess_bpf_prog_is_retprobe(prog_ptr: libbpf.struct_bpf_program) -> bool:
-    return "ret_" in prog_ptr.name.data.decode("ascii")
+    # from inspect import getmembers
+    # from pprint import pprint
+    # pprint(getmembers(prog_ptr.name))
+    # while(1): pass
+    if prog_ptr.name.contents:
+        b = ctypes.cast(prog_ptr.name, ctypes.c_char_p).value
+        s = b.decode("ascii")
+        return "ret_" in s
+    assert False
+    # if prog_ptr.name.data is None:
+    #     return True # FIXME WTF
+    # return "ret_" in prog_ptr.name.data.decode("ascii")
 
 def load_probe(
         loc: KprobeLoc | UprobeLoc,
@@ -563,6 +591,23 @@ def load_bpf_elf(loc: KprobeLoc | UprobeLoc, btf: Optional[Path], no_retprobe: b
     obj_ptr = s_ptr.contents.obj.contents
     programs_ptr = obj_ptr.contents.programs
 
+    from pprint import pformat
+    from inspect import getmembers
+    x = lambda _a: pformat(getmembers(_a))
+    # raise ValueError(x(programs_ptr[0]))
+    # raise ValueError(ctypes.sizeof(libbpf.struct_bpf_program))
+    # raise ValueError(ctypes.sizeof(libbpf.struct_bpf_program))
+    # raise ValueError(type(programs_ptr[0]))
+    # raise ValueError(libbpf.struct_bpf_program.insns_cnt.offset)
+    # raise ValueError(ctypes.sizeof(programs_ptr.contents))
+    # print(list(map(lambda x: hex(ctypes.addressof(x)), (programs_ptr, programs_ptr[0], programs_ptr[1]))))
+    # raise ValueError(x(programs_ptr[0]))
+    # addr = ctypes.addressof(programs_ptr[1])
+    # s = (ctypes.c_char * 248).from_address(addr) 
+    # for i, x in enumerate(s.raw):
+    #     print(hex(i), hex(x))
+    # raise ValueError("A")
+
     patched_attach_type = get_attach_type(loc)
     for i in range(2):
         programs_ptr[i].expected_attach_type = patched_attach_type
@@ -580,6 +625,7 @@ def load_bpf_elf(loc: KprobeLoc | UprobeLoc, btf: Optional[Path], no_retprobe: b
             new_value=bytes(value, "ascii") + b'\x00',
         )
 
+    # NOTE: it's realloced!!
     programs_ptr = obj_ptr.contents.programs
 
     # NOTE: be careful here, as 'nr_programs' is also incremented for non-inlined static functions.
@@ -591,7 +637,9 @@ def load_bpf_elf(loc: KprobeLoc | UprobeLoc, btf: Optional[Path], no_retprobe: b
 
     load_probe(loc=loc, num_progs=num_progs, programs_ptr=programs_ptr, no_retprobe=no_retprobe)
 
-    rb_map_fd : int = libbpf.bpf_object__find_map_fd_by_name(obj_ptr, libbpf.String(b"rb"))
+    buf = alloc_writable_buf_bytes(content=b"rb")
+
+    rb_map_fd : int = libbpf.bpf_object__find_map_fd_by_name(obj_ptr, buf)
     if rb_map_fd <= 0:
         raise ValueError(f"patch_bpf_map: lookup failed for map 'rb'")
     
