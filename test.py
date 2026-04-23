@@ -4,6 +4,7 @@ import ctypes
 import platform
 from enum import Enum, IntEnum, auto
 import logging
+from typing import Type
 
 import gen.bpf as bpf
 
@@ -98,6 +99,13 @@ def syscall_bpf(op: BPF_op, attr: ctypes.Union):
     syscall_bpf_check_result_for_error(op=op, res=res)
     return res
 
+def alloc_writable_buf(type: Type[ctypes.Structure]) -> "ctypes._Pointer[ctypes.Structure]":
+    size = ctypes.sizeof(type)
+    assert size
+    ptr = ctypes.create_string_buffer(init=bytes(size), size=size)
+    return ctypes.cast(ptr, ctypes.POINTER(type))
+
+
 def main():
     """
     bpf(BPF_PROG_LOAD, {
@@ -125,7 +133,33 @@ def main():
         fd_array=NULL}, 148) = 5
     """
     attr = bpf_prog_load__bpf_attr()
-    attr.insn_cnt = 2137
+    
+    attr.prog_type = bpf.BPF_PROG_TYPE_KPROBE
+    attr.insn_cnt = 7
+    attr.insns = ctypes.addressof(attr)  # XXX - whatever valid addr
+    # license_ptr = ctypes.create_string_buffer(init=b"Dual BSD/GPL", size=len(b"Dual BSD/GPL")),
+    buf = alloc_writable_buf(type=ctypes.c_char * 12, )
+    buf = ctypes.cast(buf, ctypes.c_void_p)
+    buf.contents = b"Dual BSD/GPL"
+    license_ptr = ctypes.cast(buf, ctypes.POINTER(ctypes.c_ulong))
+    license_ptr_as_ulong = ctypes.addressof(license_ptr.contents)
+    attr.license = license_ptr_as_ulong
+    attr.log_level = 0
+    attr.log_size = 0
+    attr.log_buf = 0 # or ctypes.POINTER(ctypes.c_char)()?
+    attr.kern_version = 0 # XXX
+    attr.prog_flags = 0
+    attr.prog_name = buf.contents # TODO FOR NOW ANY POINTER
+    attr.prog_ifindex = 0
+    attr.expected_attach_type=bpf.BPF_CGROUP_INET_INGRESS
+    attr.prog_btf_fd = 4 # XXX
+    attr.func_info_rec_size = 8 # XXX
+    attr.func_info = license_ptr_as_ulong
+    attr.line_info_cnt = 3 # XXX
+    attr.attach_btf_id = 0 # XXX
+    attr.attach_prog_fd = 0 # XXX
+    attr.fd_array = 0 # XXX
+    
     print(hex(ctypes.addressof(attr)))
     res = syscall_bpf(
         op=BPF_op.BPF_PROG_LOAD,
