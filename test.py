@@ -3,6 +3,7 @@
 import ctypes
 import platform
 from enum import Enum, IntEnum
+import logging
 
 import gen.bpf as bpf
 
@@ -18,6 +19,13 @@ def system_get_cpu_arch() -> CPU_Arch:
     machine = platform.machine()
     return CPU_Arch(machine)
 
+get_errno_loc = libc.__errno_location
+get_errno_loc.restype = ctypes.POINTER(ctypes.c_int)
+
+def errno():
+    e: int = get_errno_loc()[0]
+    import errno
+    return errno.errorcode[e]
 
 bpf_syscall_nr = {
     CPU_Arch.x86_64: 321,
@@ -70,7 +78,9 @@ class BPF_op(IntEnum):
 def syscall_bpf_res_handler(op: BPF_op, res: int):
     if op == bpf.BPF_PROG_LOAD:
         if res == -1:
-            raise RuntimeError(f"{op.name}: EPERM")
+            raise RuntimeError(f"{op.name}: {errno()}")
+        else:
+            logging.info(f"{op.name} OK")
 
 def syscall_bpf(op: BPF_op, *args):
     assert isinstance(op, BPF_op)
