@@ -75,23 +75,32 @@ class BPF_op(IntEnum):
     BPF_PROG_BIND_MAP = auto()
     BPF_TOKEN_CREATE = auto()
 
-def syscall_bpf_res_handler(op: BPF_op, res: int):
+
+bpf_prog_load__bpf_attr = bpf.struct_anon_17
+
+def syscall_bpf_check_result_for_error(op: BPF_op, res: int):
     if op == bpf.BPF_PROG_LOAD:
         if res == -1:
             raise RuntimeError(f"{op.name}: {errno()}")
         else:
             logging.info(f"{op.name} OK")
+    else:
+        assert False
 
-def syscall_bpf(op: BPF_op, *args):
+def syscall_bpf(op: BPF_op, attr: ctypes.Union):
     assert isinstance(op, BPF_op)
     sys_bpf : int = bpf_syscall_nr[system_get_cpu_arch()]
-    res = syscall(sys_bpf, op, *args)
-    syscall_bpf_res_handler(op=op, res=res)
+    res = syscall(sys_bpf, op, ctypes.addressof(attr), ctypes.sizeof(attr))
+    syscall_bpf_check_result_for_error(op=op, res=res)
     return res
 
 def main():
+    attr = bpf_prog_load__bpf_attr()
+    attr.insn_cnt = 2137
+    print(hex(ctypes.addressof(attr)))
     res = syscall_bpf(
         op=BPF_op.BPF_PROG_LOAD,
+        attr=attr,
     )
 
 if __name__ == "__main__":
