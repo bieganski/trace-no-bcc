@@ -1,0 +1,56 @@
+root@AMDC4868:/home/m.bieganski/github/bcc/libbpf-tools# strace -e bpf,/perf ./uprobe /lib/x86_64-linux-gnu/libc.so.6 malloc
+libbpf: loading object 'uprobe_bpf' from buffer
+libbpf: elf: section(3) uprobe//, size 56, link 0, flags 6, type=1
+libbpf: sec 'uprobe//': found program 'xdddwrite' at insn offset 0 (0 bytes), code size 7 insns (56 bytes)
+libbpf: elf: section(4) .reluprobe//, size 16, link 12, flags 40, type=9
+libbpf: elf: section(5) license, size 13, link 0, flags 3, type=1
+libbpf: license of uprobe_bpf is Dual BSD/GPL
+libbpf: elf: section(6) .rodata, size 5, link 0, flags 2, type=1
+libbpf: elf: section(7) .BTF, size 979, link 0, flags 0, type=1
+libbpf: elf: section(9) .BTF.ext, size 112, link 0, flags 0, type=1
+libbpf: elf: section(12) .symtab, size 144, link 1, flags 0, type=2
+libbpf: looking for externs among 6 symbols...
+libbpf: collected 0 externs total
+libbpf: map 'uprobe_b.rodata' (global data): at sec_idx 6, offset 0, flags 80.
+libbpf: map 0 is "uprobe_b.rodata"
+libbpf: sec '.reluprobe//': collecting relocation for section(3) 'uprobe//'
+libbpf: sec '.reluprobe//': relo #0: insn #1 against '.rodata'
+libbpf: prog 'xdddwrite': found data map 0 (uprobe_b.rodata, sec 6, off 0) for insn 1
+bpf(BPF_TOKEN_CREATE, {token_create={flags=0, bpffs_fd=4}}, 8) = -1 EINVAL (Invalid argument)
+libbpf: object 'uprobe_bpf': failed (-22) to create BPF token from '/sys/fs/bpf', skipping optional step...
+bpf(BPF_PROG_LOAD, {prog_type=BPF_PROG_TYPE_SOCKET_FILTER, insn_cnt=2, insns=0x7ffdd71b2790, license="GPL", log_level=0, log_size=0, log_buf=NULL, kern_version=KERNEL_VERSION(0, 0, 0), prog_flags=0, prog_name="", prog_ifindex=0, expected_attach_type=BPF_CGROUP_INET_INGRESS, prog_btf_fd=0, func_info_rec_size=0, func_info=NULL, func_info_cnt=0, line_info_rec_size=0, line_info=NULL, line_info_cnt=0, attach_btf_id=0, attach_prog_fd=0}, 116) = 4
+bpf(BPF_PROG_LOAD, {prog_type=BPF_PROG_TYPE_SOCKET_FILTER, insn_cnt=2, insns=0x7ffdd71b29b0, license="GPL", log_level=0, log_size=0, log_buf=NULL, kern_version=KERNEL_VERSION(0, 0, 0), prog_flags=0, prog_name="", prog_ifindex=0, expected_attach_type=BPF_CGROUP_INET_INGRESS, prog_btf_fd=0, func_info_rec_size=0, func_info=NULL, func_info_cnt=0, line_info_rec_size=0, line_info=NULL, line_info_cnt=0, attach_btf_id=0, attach_prog_fd=0, fd_array=NULL}, 148) = 4
+bpf(BPF_PROG_LOAD, {prog_type=BPF_PROG_TYPE_SOCKET_FILTER, insn_cnt=2, insns=0x7ffdd71b2690, license="GPL", log_level=0, log_size=0, log_buf=NULL, kern_version=KERNEL_VERSION(0, 0, 0), prog_flags=0, prog_name="libbpf_nametest"}, 64) = 4
+bpf(BPF_MAP_CREATE, {map_type=BPF_MAP_TYPE_ARRAY, key_size=4, value_size=4, max_entries=1, map_flags=BPF_F_MMAPABLE, inner_map_fd=0, map_name="libbpf_mmap", map_ifindex=0, btf_fd=0, btf_key_type_id=0, btf_value_type_id=0, btf_vmlinux_value_type_id=0, map_extra=0}, 80) = 4
+bpf(BPF_BTF_LOAD, {btf="\237\353\1\0\30\0\0\0\0\0\0\0000\0\0\0000\0\0\0\t\0\0\0\1\0\0\0\0\0\0\1"..., btf_log_buf=NULL, btf_size=81, btf_log_size=0, btf_log_level=0}, 40) = 4
+bpf(BPF_BTF_LOAD, {btf="\237\353\1\0\30\0\0\0\0\0\0\0000\0\0\0000\0\0\0\5\0\0\0\0\0\0\0\0\0\0\1"..., btf_log_buf=NULL, btf_size=77, btf_log_size=0, btf_log_level=0}, 40) = 4
+bpf(BPF_BTF_LOAD, {btf="\237\353\1\0\30\0\0\0\0\0\0\0l\0\0\0l\0\0\0\16\0\0\0\1\0\0\0\0\0\0\1"..., btf_log_buf=NULL, btf_size=146, btf_log_size=0, btf_log_level=0}, 40) = 4
+bpf(BPF_PROG_LOAD, {prog_type=BPF_PROG_TYPE_KPROBE, insn_cnt=4, insns=0x7ffdd71b2800, license="GPL", log_level=0, log_size=0, log_buf=NULL, kern_version=KERNEL_VERSION(0, 0, 0), prog_flags=0, prog_name="det_arg_ctx", prog_ifindex=0, expected_attach_type=BPF_CGROUP_INET_INGRESS, prog_btf_fd=4, func_info_rec_size=8, func_info=0x7ffdd71b27f0, func_info_cnt=2, line_info_rec_size=0, line_info=NULL, line_info_cnt=0, attach_btf_id=0, attach_prog_fd=0, fd_array=NULL}, 148) = -1 EINVAL (Invalid argument)
+bpf(BPF_BTF_LOAD, {btf="\237\353\1\0\30\0\0\0\0\0\0\0\20\0\0\0\20\0\0\0\5\0\0\0\1\0\0\0\0\0\0\1"..., btf_log_buf=NULL, btf_size=45, btf_log_size=0, btf_log_level=0}, 40) = 4
+bpf(BPF_BTF_LOAD, {btf="\237\353\1\0\30\0\0\0\0\0\0\0000\0\0\0000\0\0\0\t\0\0\0\1\0\0\0\0\0\0\1"..., btf_log_buf=NULL, btf_size=81, btf_log_size=0, btf_log_level=0}, 40) = 4
+bpf(BPF_BTF_LOAD, {btf="\237\353\1\0\30\0\0\0\0\0\0\08\0\0\08\0\0\0\t\0\0\0\0\0\0\0\0\0\0\1"..., btf_log_buf=NULL, btf_size=89, btf_log_size=0, btf_log_level=0}, 40) = 4
+bpf(BPF_BTF_LOAD, {btf="\237\353\1\0\30\0\0\0\0\0\0\0\f\0\0\0\f\0\0\0\7\0\0\0\1\0\0\0\0\0\0\20"..., btf_log_buf=NULL, btf_size=43, btf_log_size=0, btf_log_level=0}, 40) = 4
+bpf(BPF_BTF_LOAD, {btf="\237\353\1\0\30\0\0\0\0\0\0\0(\0\0\0(\0\0\0\5\0\0\0\0\0\0\0\0\0\0\1"..., btf_log_buf=NULL, btf_size=69, btf_log_size=0, btf_log_level=0}, 40) = 4
+bpf(BPF_BTF_LOAD, {btf="\237\353\1\0\30\0\0\0\0\0\0\0\f\0\0\0\f\0\0\0\10\0\0\0\1\0\0\0\0\0\0\23"..., btf_log_buf=NULL, btf_size=44, btf_log_size=0, btf_log_level=0}, 40) = 4
+bpf(BPF_BTF_LOAD, {btf="\237\353\1\0\30\0\0\0\0\0\0\0\0\2\0\0\0\2\0\0\273\1\0\0\0\0\0\0\0\0\0\2"..., btf_log_buf=NULL, btf_size=979, btf_log_size=0, btf_log_level=0}, 40) = 4
+bpf(BPF_MAP_CREATE, {map_type=BPF_MAP_TYPE_ARRAY, key_size=4, value_size=32, max_entries=1, map_flags=0, inner_map_fd=0, map_name="libbpf_global", map_ifindex=0, btf_fd=0, btf_key_type_id=0, btf_value_type_id=0, btf_vmlinux_value_type_id=0, map_extra=0}, 80) = 5
+bpf(BPF_PROG_LOAD, {prog_type=BPF_PROG_TYPE_SOCKET_FILTER, insn_cnt=5, insns=0x7ffdd71b2670, license="GPL", log_level=0, log_size=0, log_buf=NULL, kern_version=KERNEL_VERSION(0, 0, 0), prog_flags=0, prog_name="", prog_ifindex=0, expected_attach_type=BPF_CGROUP_INET_INGRESS, prog_btf_fd=0, func_info_rec_size=0, func_info=NULL, func_info_cnt=0, line_info_rec_size=0, line_info=NULL, line_info_cnt=0, attach_btf_id=0, attach_prog_fd=0, fd_array=NULL}, 148) = 6
+bpf(BPF_MAP_CREATE, {map_type=BPF_MAP_TYPE_ARRAY, key_size=4, value_size=5, max_entries=1, map_flags=BPF_F_RDONLY_PROG, inner_map_fd=0, map_name="uprobe_b.rodata", map_ifindex=0, btf_fd=4, btf_key_type_id=0, btf_value_type_id=14, btf_vmlinux_value_type_id=0, map_extra=0}, 80) = 5
+libbpf: map 'uprobe_b.rodata': created successfully, fd=3
+bpf(BPF_MAP_UPDATE_ELEM, {map_fd=3, key=0x7ffdd71b278c, value=0x7a37aec57000, flags=BPF_ANY}, 32) = 0
+bpf(BPF_MAP_FREEZE, {map_fd=3}, 4)      = 0
+bpf(BPF_PROG_LOAD, {prog_type=BPF_PROG_TYPE_KPROBE, insn_cnt=7, insns=0x64254dfa7950, license="Dual BSD/GPL", log_level=0, log_size=0, log_buf=NULL, kern_version=KERNEL_VERSION(6, 8, 12), prog_flags=0, prog_name="xdddwrite", prog_ifindex=0, expected_attach_type=BPF_CGROUP_INET_INGRESS, prog_btf_fd=4, func_info_rec_size=8, func_info=0x64254dfa6bc0, func_info_cnt=1, line_info_rec_size=16, line_info=0x64254dfa6be0, line_info_cnt=3, attach_btf_id=0, attach_prog_fd=0, fd_array=NULL}, 148) = 5
+bpf(BPF_MAP_CREATE, {map_type=BPF_MAP_TYPE_ARRAY, key_size=4, value_size=32, max_entries=1, map_flags=0, inner_map_fd=0, map_name="libbpf_det_bind", map_ifindex=0, btf_fd=0, btf_key_type_id=0, btf_value_type_id=0, btf_vmlinux_value_type_id=0, map_extra=0}, 80) = 6
+bpf(BPF_PROG_LOAD, {prog_type=BPF_PROG_TYPE_SOCKET_FILTER, insn_cnt=2, insns=0x7ffdd71b1ea0, license="GPL", log_level=0, log_size=0, log_buf=NULL, kern_version=KERNEL_VERSION(0, 0, 0), prog_flags=0, prog_name="", prog_ifindex=0, expected_attach_type=BPF_CGROUP_INET_INGRESS, prog_btf_fd=0, func_info_rec_size=0, func_info=NULL, func_info_cnt=0, line_info_rec_size=0, line_info=NULL, line_info_cnt=0, attach_btf_id=0, attach_prog_fd=0, fd_array=NULL}, 148) = 7
+bpf(BPF_PROG_BIND_MAP, {prog_bind_map={prog_fd=7, map_fd=6, flags=0}}, 12) = 0
+bpf(BPF_PROG_BIND_MAP, {prog_bind_map={prog_fd=5, map_fd=3, flags=0}}, 12) = 0
+libbpf: elf: symbol address match for 'malloc' in '/usr/lib/x86_64-linux-gnu/libc.so.6': 0xa50a0
+perf_event_open({type=0x9 /* PERF_TYPE_??? */, size=0x88 /* PERF_ATTR_SIZE_??? */, config=0, sample_period=0, sample_type=0, read_format=0, precise_ip=0 /* arbitrary skid */, ...}, -1, 0, -1, PERF_FLAG_FD_CLOEXEC) = 6
+bpf(BPF_PROG_LOAD, {prog_type=BPF_PROG_TYPE_TRACEPOINT, insn_cnt=2, insns=0x7ffdd71b05a0, license="GPL", log_level=0, log_size=0, log_buf=NULL, kern_version=KERNEL_VERSION(0, 0, 0), prog_flags=0, prog_name="", prog_ifindex=0, expected_attach_type=BPF_CGROUP_INET_INGRESS, prog_btf_fd=0, func_info_rec_size=0, func_info=NULL, func_info_cnt=0, line_info_rec_size=0, line_info=NULL, line_info_cnt=0, attach_btf_id=0, attach_prog_fd=0, fd_array=NULL}, 148) = 7
+bpf(BPF_LINK_CREATE, {link_create={prog_fd=7, target_fd=-1, attach_type=BPF_PERF_EVENT, flags=0, perf_event={bpf_cookie=0}}}, 64) = -1 EBADF (Bad file descriptor)
+bpf(BPF_LINK_CREATE, {link_create={prog_fd=5, target_fd=6, attach_type=BPF_PERF_EVENT, flags=0, perf_event={bpf_cookie=0}}}, 64) = 7
+
+Successfully started! Please run `sudo cat /sys/kernel/debug/tracing/trace_pipe` to see output of the BPF programs.
+^Cstrace: Process 41162 detached
+
+

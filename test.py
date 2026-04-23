@@ -7,6 +7,8 @@ import logging
 
 import gen.bpf as bpf
 
+logging.basicConfig(level=logging.INFO)
+
 libc = ctypes.CDLL(None)
 syscall = libc.syscall
 
@@ -90,11 +92,38 @@ def syscall_bpf_check_result_for_error(op: BPF_op, res: int):
 def syscall_bpf(op: BPF_op, attr: ctypes.Union):
     assert isinstance(op, BPF_op)
     sys_bpf : int = bpf_syscall_nr[system_get_cpu_arch()]
-    res = syscall(sys_bpf, op, ctypes.addressof(attr), ctypes.sizeof(attr))
+    attr_addr, attr_size = ctypes.addressof(attr), ctypes.sizeof(attr)
+    logging.info(f"bpf(op={op.name}, attr={hex(attr_addr)}, size={attr_size})")
+    res = syscall(sys_bpf, op, attr_addr, attr_size)
     syscall_bpf_check_result_for_error(op=op, res=res)
     return res
 
 def main():
+    """
+    bpf(BPF_PROG_LOAD, {
+        prog_type=BPF_PROG_TYPE_KPROBE,
+        insn_cnt=7,
+        insns=0x64254dfa7950,
+        license="Dual BSD/GPL",
+        log_level=0,
+        log_size=0,
+        log_buf=NULL,
+        kern_version=KERNEL_VERSION(6, 8, 12),
+        prog_flags=0,
+        prog_name="xdddwrite",
+        prog_ifindex=0,
+        expected_attach_type=BPF_CGROUP_INET_INGRESS,
+        prog_btf_fd=4,
+        func_info_rec_size=8,
+        func_info=0x64254dfa6bc0,
+        func_info_cnt=1,
+        line_info_rec_size=16,
+        line_info=0x64254dfa6be0,
+        line_info_cnt=3,
+        attach_btf_id=0,
+        attach_prog_fd=0,
+        fd_array=NULL}, 148) = 5
+    """
     attr = bpf_prog_load__bpf_attr()
     attr.insn_cnt = 2137
     print(hex(ctypes.addressof(attr)))
