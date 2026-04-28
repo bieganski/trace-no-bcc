@@ -161,8 +161,9 @@ def main():
     attr.expected_attach_type=bpf.BPF_CGROUP_INET_INGRESS
     attr.prog_btf_fd = 4 # XXX
     attr.func_info_rec_size = 8 # XXX
-    # attr.func_info = license_ptr_as_ulong
-    attr.line_info_cnt = 3 # XXX
+    attr.func_info = 0 # ctypes.cast(buf, ctypes.c_char_p)
+    attr.line_info_cnt = 0 # XXX
+
     attr.attach_btf_id = 0 # XXX
     attr.attach_prog_fd = 0 # XXX
     attr.fd_array = 0 # XXX
@@ -181,6 +182,11 @@ def main():
         op=BPF_op.BPF_PROG_LOAD,
         attr=attr,
     )
+
+    print(f"bpf_prog_load fd={res}")
+    import time
+    print("sudo bpftool prog show")
+    time.sleep(9999)
 
 if __name__ == "__main__":
     from argparse import ArgumentParser

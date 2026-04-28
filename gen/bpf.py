@@ -1669,7 +1669,7 @@ struct_anon_17._fields_ = [
     ('expected_attach_type', __u32),
     ('prog_btf_fd', __u32),
     ('func_info_rec_size', __u32),
-    ('func_info', __u64),
+    ('func_info', c_char_p), # XXX __u64),
     ('func_info_cnt', __u32),
     ('line_info_rec_size', __u32),
     ('line_info', __u64),
