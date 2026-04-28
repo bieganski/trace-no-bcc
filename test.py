@@ -95,7 +95,8 @@ def syscall_bpf(op: BPF_op, attr: ctypes.Union):
     sys_bpf : int = bpf_syscall_nr[system_get_cpu_arch()]
     attr_addr, attr_size = ctypes.addressof(attr), ctypes.sizeof(attr)
     logging.info(f"bpf(op={op.name}, attr={hex(attr_addr)}, size={attr_size})")
-    res = syscall(sys_bpf, op, attr_addr, attr_size)
+    print(f"attr_addr={hex(attr_addr)}")
+    res = syscall(ctypes.c_int(sys_bpf), ctypes.c_int(op), ctypes.c_ulong(attr_addr), ctypes.c_int(attr_size))
     syscall_bpf_check_result_for_error(op=op, res=res)
     return res
 
@@ -133,59 +134,49 @@ def main():
         fd_array=NULL}, 148) = 5
     """
     attr = bpf_prog_load__bpf_attr()
+
+    minimal_insn_bytes = b"\xb7\x00\x00\x00\x00\x00\x00\x00\x95\x00\x00\x00\x00\x00\x00\x00"
+    minimal_bpf_prog = ctypes.create_string_buffer(init=minimal_insn_bytes, size=len(minimal_insn_bytes))
     
     attr.prog_type = bpf.BPF_PROG_TYPE_KPROBE
-    attr.insn_cnt = 7
-    attr.insns = ctypes.addressof(attr)  # XXX - whatever valid addr
+    attr.insn_cnt = 2
+    attr.insns = ctypes.cast(minimal_bpf_prog, ctypes.c_char_p) # ctypes.addressof(attr)  # XXX - whatever valid addr
     # license_ptr = ctypes.create_string_buffer(init=b"Dual BSD/GPL", size=len(b"Dual BSD/GPL")),
-    buf = alloc_writable_buf(type=ctypes.c_char * 12, )
-    buf = ctypes.cast(buf, ctypes.c_void_p)
-    buf.contents = b"Dual BSD/GPL"
-    license_ptr = ctypes.cast(buf, ctypes.POINTER(ctypes.c_ulong))
-    license_ptr_as_ulong = ctypes.addressof(license_ptr.contents)
-    attr.license = buf # license_ptr # ctypes.cast(license_ptr, ctypes.c_void_p) # license_ptr_as_ulong
+    # buf = alloc_writable_buf(type=ctypes.c_char * 12, )
+    # buf = ctypes.cast(buf, ctypes.c_void_p)
+    # buf.contents = b"Dual BSD/GPL"
+    buf = ctypes.create_string_buffer(init=b"Dual BSD/GPL", size=len(b"Dual BSD/GPL"))
+    buf = ctypes.cast(buf, ctypes.POINTER(ctypes.c_char * 1000000000000))
+    # license_ptr = ctypes.cast(buf, ctypes.POINTER(ctypes.c_ulong))
+    # license_ptr_as_ulong = ctypes.cast(buf, ctypes.POINTER(ctypes.c_ulong))
+    attr.license = ctypes.cast(buf, ctypes.c_char_p) # ctypes.cast(license_ptr, ctypes.c_void_p) # license_ptr_as_ulong
     attr.log_level = 0
     attr.log_size = 0
     attr.log_buf = 0 # or ctypes.POINTER(ctypes.c_char)()?
-    attr.kern_version = 0 # XXX
+    KERNEL_VERSION = lambda a, b, c: (((a) << 16) + ((b) << 8) + (c))
+    attr.kern_version = KERNEL_VERSION(6, 17, 0)
     attr.prog_flags = 0
-    attr.prog_name = buf.contents # TODO FOR NOW ANY POINTER
+    attr.prog_name = b"hehe"
     attr.prog_ifindex = 0
     attr.expected_attach_type=bpf.BPF_CGROUP_INET_INGRESS
     attr.prog_btf_fd = 4 # XXX
     attr.func_info_rec_size = 8 # XXX
-    attr.func_info = license_ptr_as_ulong
+    # attr.func_info = license_ptr_as_ulong
     attr.line_info_cnt = 3 # XXX
     attr.attach_btf_id = 0 # XXX
     attr.attach_prog_fd = 0 # XXX
     attr.fd_array = 0 # XXX
 
-    import time, os
+    # import time, os
 
-    while True:
-        # license_ptr.contents = ctypes.c_ulong(0x66345678)
-        a = license_ptr
-        for addr in [ctypes.addressof(buf)]:
-            # print(f"sudo bash -c 'source common.alias ; rb /proc/{os.getpid()}/mem {hex(addr)} 20'")
-            print(f"sudo gdb --batch -p {os.getpid()} -ex 'x/s {hex(addr)}' -ex quit")
-        time.sleep(9999)
+    # while True:
+    #     # license_ptr.contents = ctypes.c_ulong(0x66345678)
+    #     a = license_ptr
+    #     for addr in [ctypes.addressof(buf.contents)]:
+    #         # print(f"sudo bash -c 'source common.alias ; rb /proc/{os.getpid()}/mem {hex(addr)} 20'")
+    #         print(f"sudo gdb --batch -p {os.getpid()} -ex 'x/s {hex(addr)}' -ex quit")
+    #     time.sleep(9999)
 
-    import os
-    # addr = ctypes.cast(buf, ctypes.c_void_p).value
-    # addr = ctypes.addressof(buf.contents)
-    # addr = ctypes.byref(buf.contents)
-    # raise ValueError(ctypes.addressof(buf))
-    addr = ctypes.addressof(buf)
-    print(f"ctypes.addressof(buf)={ctypes.addressof(buf)}")
-    raise ValueError(ctypes.addressof(license_ptr))
-    
-    print(f"sudo bash -c 'source common.alias ; rb /proc/{os.getpid()}/mem {hex(addr)} 20'")
-
-    import time
-    time.sleep(99999)
-    # print(attr.license.contents, buf.contents)
-    # print(hex(ctypes.addressof(attr)))
-    
     res = syscall_bpf(
         op=BPF_op.BPF_PROG_LOAD,
         attr=attr,
