@@ -8,6 +8,13 @@ from typing import Type
 
 import gen.bpf as bpf
 
+assert 8 == ctypes.sizeof(bpf.struct_bpf_insn)
+insn = bpf.struct_bpf_insn()
+insn.imm = 3
+assert bytes(insn) == b'\x00\x00\x00\x00\x03\x00\x00\x00'
+one = b'\x00\x00\x00\x00\x00\x00\x00\xf0'
+assert ctypes.c_uint64.from_buffer_copy(one).value == 0xf000_0000_0000_0000
+
 logging.basicConfig(level=logging.INFO)
 
 libc = ctypes.CDLL(None)
