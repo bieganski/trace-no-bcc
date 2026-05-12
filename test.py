@@ -114,6 +114,100 @@ def alloc_writable_buf(type: Type[ctypes.Structure]) -> "ctypes._Pointer[ctypes.
     return ctypes.cast(ptr, ctypes.POINTER(type))
 
 
+def relocate(elf: bytes):
+    pass
+
+def relocate_prog(insn: bytes):
+    pass
+
+from elftools.elf.elffile import ELFFile
+from elftools.elf.elffile import ELFFile
+
+def iterate_bpf_relocations(elf_path):
+    with open(elf_path, 'rb') as f:
+        elf = ELFFile(f)
+        
+        # Iterate through sections
+        for section in elf.iter_sections():
+            # Check if this is a relocation section
+            if section.header.sh_type not in ('SHT_REL', 'SHT_RELA'):
+                continue
+            
+            # Get the section these relocations apply to
+            target_section_idx = section.header.sh_info
+            target_section = elf.get_section(target_section_idx)
+            
+            print(f"\nRelocations for section: {target_section.name}")
+            
+            # Iterate through relocations
+            for reloc in section.iter_relocations():
+                # BPF relocation types
+                reloc_type = reloc['r_info_type']
+                reloc_offset = reloc['r_offset']
+                symbol_idx = reloc['r_info_sym']
+
+                symbol_table = elf.get_section(section['sh_link'])
+                symbol = symbol_table.get_symbol(symbol_idx)
+                print(symbol_table.data().decode(errors="ignore"))
+                from inspect import getmembers
+                from pprint import pformat
+                x = lambda y: pformat(getmembers(y))
+                # print(x(symbol))
+                continue
+            # for relocation in section.iter_relocations():
+            #     symbol = symbol_table.get_symbol(relocation['r_info_sym'])
+                
+                # Get symbol name
+                # symtab = elf.get_section(section.header.sh_link)
+                sec_name = ".symtab"
+                symtab_header = elf.get_section_by_name(sec_name).header
+                symbols : list[bytes] = elf.get_section_by_name(sec_name).data().split(b"\x00")
+                raise ValueError(symbols)
+                symtab:  int = symtab_header.sh_link
+                # raise ValueError(( elf.get_section_by_name(".strtab") ).header.sh_link )
+                # raise ValueError(section.header.sh_link)
+                # :
+                print(symbols[symbol_idx])
+                continue
+                symbol = symtab.get_symbol(symbol_idx)
+                print(symbol_idx)
+                symbol_name = symbol.name
+                
+                # BPF-specific relocation types
+                R_BPF_NONE = 0
+                R_BPF_64_64 = 1
+                R_BPF_64_ABS64 = 2
+                R_BPF_64_ABS32 = 3
+                R_BPF_64_NODYLD32 = 4
+                R_BPF_64_32 = 10
+                
+                reloc_type_names = {
+                    R_BPF_NONE: 'R_BPF_NONE',
+                    R_BPF_64_64: 'R_BPF_64_64',
+                    R_BPF_64_ABS64: 'R_BPF_64_ABS64',
+                    R_BPF_64_ABS32: 'R_BPF_64_ABS32',
+                    R_BPF_64_NODYLD32: 'R_BPF_64_NODYLD32',
+                    R_BPF_64_32: 'R_BPF_64_32',
+                }
+                
+                type_name = reloc_type_names.get(reloc_type, f'UNKNOWN({reloc_type})')
+                
+                
+                
+                # For R_BPF_64_64, this is typically a map reference
+                if reloc_type == R_BPF_64_64:
+                    print(f"  Offset: 0x{reloc_offset:x}")
+                    print(f"    Type: {type_name}")
+                    print(f"    Symbol: {symbol_name}")
+                else:
+                    pass
+                    
+
+# Usage
+iterate_bpf_relocations('uprobe.bpf.o')
+raise ValueError("OK")
+
+
 def main():
     """
     bpf(BPF_PROG_LOAD, {

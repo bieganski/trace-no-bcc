@@ -44,7 +44,9 @@ def main(path: Path):
 
     for i, line in enumerate(lines):
         if "\tcall" in line:
-            num = int(line.split()[-1])
+            num_str = line.split()[-1]
+            base = 16 if num_str.startswith("0x") else 10
+            num = int(num_str, base)
             lines[i] = f"{line} ({bcolors.OKCYAN.value}{rmap[num]}{bcolors.ENDC.value})"
     print("\n".join(lines))
 
