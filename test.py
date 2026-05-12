@@ -123,6 +123,10 @@ def relocate_prog(insn: bytes):
 from elftools.elf.elffile import ELFFile
 from elftools.elf.elffile import ELFFile
 
+from inspect import getmembers
+from pprint import pformat
+x = lambda y: pformat(getmembers(y))
+
 def iterate_bpf_relocations(elf_path):
     with open(elf_path, 'rb') as f:
         elf = ELFFile(f)
@@ -146,12 +150,32 @@ def iterate_bpf_relocations(elf_path):
                 reloc_offset = reloc['r_offset']
                 symbol_idx = reloc['r_info_sym']
 
+                if reloc_type != (R_BPF_64_64 := 1):
+                    continue
+
+                symbol_tbl_idx = reloc.entry.r_info_sym
+                
+                ##
+                sec_name =".strtab"
+                symbols : list[bytes] = elf.get_section_by_name(sec_name).data().split(b"\x00")
+                symbols = [x.decode("ascii") for x in symbols]
+                from pathlib import Path
+                for x in Path("dupa").read_text().splitlines():
+                    if not x:
+                        continue
+                    # print(symbols)
+                    b : bytes = elf.get_section_by_name(sec_name).data()
+                    print(b.find(x.encode()))
+                    print(symbols.index(x))
+                ##
+                
+                print(symbol_tbl_idx, symbols.get_string(symbol_tbl_idx))
+                continue
+
                 symbol_table = elf.get_section(section['sh_link'])
                 symbol = symbol_table.get_symbol(symbol_idx)
                 print(symbol_table.data().decode(errors="ignore"))
-                from inspect import getmembers
-                from pprint import pformat
-                x = lambda y: pformat(getmembers(y))
+                
                 # print(x(symbol))
                 continue
             # for relocation in section.iter_relocations():
