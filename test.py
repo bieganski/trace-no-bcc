@@ -127,6 +127,41 @@ from inspect import getmembers
 from pprint import pformat
 x = lambda y: pformat(getmembers(y))
 
+# Relocations for section: uprobe//
+# 146
+# 11
+# 67
+# 6
+# 128
+# 10
+# 44
+# 5
+# 246
+# 25
+# 270
+# 26
+# 44
+# 14
+# 270
+# 26
+# 146
+# 11
+# 67
+# 6
+# 128
+# 10
+# 44
+# 5
+# 246
+# 25
+# 270
+# 26
+# 44
+# 14
+# 270
+# 26
+
+
 def iterate_bpf_relocations(elf_path):
     with open(elf_path, 'rb') as f:
         elf = ELFFile(f)
@@ -152,6 +187,8 @@ def iterate_bpf_relocations(elf_path):
 
                 if reloc_type != (R_BPF_64_64 := 1):
                     continue
+                print(reloc.entry)
+                continue
 
                 symbol_tbl_idx = reloc.entry.r_info_sym
                 
