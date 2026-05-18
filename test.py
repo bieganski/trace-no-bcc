@@ -189,6 +189,13 @@ def iterate_bpf_relocations(elf_path):
                     continue
                 print(reloc.entry)
                 continue
+            else:
+                symtab = elf.get_section_by_name('.symtab')
+                symbol = symtab.get_symbol(27)  # or list(symtab.iter_symbols())[27]
+                raise ValueError(getmembers(symbol))
+                # sec_name =".symtab"
+                # symbols : list[bytes] = elf.get_section_by_name(sec_name).data().split(b"\x00")
+                # raise ValueError(dict(enumerate(symbols)))
 
                 symbol_tbl_idx = reloc.entry.r_info_sym
                 
