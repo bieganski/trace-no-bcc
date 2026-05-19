@@ -4,7 +4,15 @@ import ctypes
 import platform
 from enum import Enum, IntEnum, auto
 import logging
-from typing import Type
+from typing import Type, Generator
+
+from elftools.elf.elffile import ELFFile
+from elftools.elf.elffile import ELFFile
+
+from inspect import getmembers
+from pprint import pformat
+x = lambda y: pformat(getmembers(y))
+
 
 import gen.bpf as bpf
 
@@ -113,56 +121,49 @@ def alloc_writable_buf(type: Type[ctypes.Structure]) -> "ctypes._Pointer[ctypes.
     ptr = ctypes.create_string_buffer(init=bytes(size), size=size)
     return ctypes.cast(ptr, ctypes.POINTER(type))
 
+def find_all_relocation_sections(elf: ELFFile) -> Generator:
+    for section in elf.iter_sections():
+        # Check if this is a relocation section
+        if section.header.sh_type not in ('SHT_REL', 'SHT_RELA'):
+            continue
+        yield section
 
-def relocate(elf: bytes):
-    pass
+def find_relevant_relocation_sections(elf: ELFFile, section_name: str) -> Generator:
+    for s in find_all_relocation_sections(elf=elf):
+        target_section_idx = s.header.sh_info
+        if elf.get_section(target_section_idx).name == section_name:
+            yield s
 
-def relocate_prog(insn: bytes):
-    pass
-
-from elftools.elf.elffile import ELFFile
-from elftools.elf.elffile import ELFFile
-
-from inspect import getmembers
-from pprint import pformat
-x = lambda y: pformat(getmembers(y))
-
-# Relocations for section: uprobe//
-# 146
-# 11
-# 67
-# 6
-# 128
-# 10
-# 44
-# 5
-# 246
-# 25
-# 270
-# 26
-# 44
-# 14
-# 270
-# 26
-# 146
-# 11
-# 67
-# 6
-# 128
-# 10
-# 44
-# 5
-# 246
-# 25
-# 270
-# 26
-# 44
-# 14
-# 270
-# 26
+def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
+    from io import BytesIO
+    elf = ELFFile(BytesIO(elf_bytes))
+    to_relocate : bytes = elf.get_section_by_name(section_name).data()
+    logging.info(f"relocating section '{section_name}' ({len(to_relocate)} bytes)..")
+    logging.info(f"locating relocations corresponding to section '{section_name}'..")
+    rel_sections = list(find_relevant_relocation_sections(elf=elf, section_name=section_name))
+    logging.info(f"sections with relocations corresponding to section '{section_name}: {[x.name for x in rel_sections]}")
+    # raise ValueError(x(symtab))
+    assert len(rel_sections) == 1
+    for s in rel_sections:
+        symtab = elf.get_section(s["sh_link"])
+        logging.info(f"rel section '{s.name}': corresponding symbol table: '{symtab.name}' ({s['sh_link']})")
+        for i, reloc in enumerate(s.iter_relocations()):
+            reloc_type = reloc['r_info_type']
+            reloc_offset = reloc['r_offset']
+            symbol_idx = reloc['r_info_sym']
+            assert reloc_type == (R_BPF_64_64 := 1)
+            symbol = symtab.get_symbol(symbol_idx)
+            logging.info(f"relocation {i}: offset={reloc_offset}, symbol '{symbol.name}' ({symbol_idx})")
+            if reloc_type != (R_BPF_64_64 := 1):
+                raise NotImplementedError()
+    raise ValueError("OK")
 
 
+
+from pathlib import Path
+relocate_section(Path("uprobe.bpf.o").read_bytes(), "uprobe//")
 def iterate_bpf_relocations(elf_path):
+    global x # XXX
     with open(elf_path, 'rb') as f:
         elf = ELFFile(f)
         
@@ -175,6 +176,7 @@ def iterate_bpf_relocations(elf_path):
             # Get the section these relocations apply to
             target_section_idx = section.header.sh_info
             target_section = elf.get_section(target_section_idx)
+            # raise ValueError(x(target_section))
             
             print(f"\nRelocations for section: {target_section.name}")
             
@@ -191,7 +193,9 @@ def iterate_bpf_relocations(elf_path):
                 continue
             else:
                 symtab = elf.get_section_by_name('.symtab')
-                symbol = symtab.get_symbol(27)  # or list(symtab.iter_symbols())[27]
+                # raise ValueError(symtab["st_shndx"])
+                raise ValueError([x["st_shndx"] for x in symtab.iter_symbols()])
+                symbol = symtab.get_symbol(4)  # or list(symtab.iter_symbols())[27]
                 raise ValueError(getmembers(symbol))
                 # sec_name =".symtab"
                 # symbols : list[bytes] = elf.get_section_by_name(sec_name).data().split(b"\x00")
