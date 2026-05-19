@@ -153,6 +153,8 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
             symbol_idx = reloc['r_info_sym']
             assert reloc_type == (R_BPF_64_64 := 1)
             symbol = symtab.get_symbol(symbol_idx)
+            print(x(next(symtab.iter_symbols())))
+            # raise ValueError([x(y) for y in symtab.iter_symbols()])
             logging.info(f"relocation {i}: offset={reloc_offset}, symbol '{symbol.name}' ({symbol_idx})")
             if reloc_type != (R_BPF_64_64 := 1):
                 raise NotImplementedError()
