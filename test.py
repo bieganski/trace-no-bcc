@@ -148,6 +148,29 @@ def symbol_name_extract__quirk(elffile: ELFFile, symbol: Symbol) -> str:
     assert symbol_name
     return symbol_name
 
+def alloc_raw_buffer(data: bytes) -> int:
+    """
+    returns raw buffer address, see '__debug_gdb' for details.
+    """
+    assert isinstance(data, bytes)
+    val_ptr = ctypes.create_string_buffer(init=data, size=len(data))
+    val_ptr = ctypes.cast(val_ptr, ctypes.POINTER(ctypes.c_char))
+    return ctypes.addressof(val_ptr.contents)
+
+def __debug_gdb(data: bytes = b"\xde\xad\xbe\xef\00\x11\x22\x33"):
+    import time
+    import os
+    addr = alloc_raw_buffer(data=data)
+    print("*", hex(addr), "=", data)
+    print(f"sudo gdb --batch -p {os.getpid()} -ex 'x/{1 + len(data) // 8}x {hex(addr)}' -ex quit")
+    time.sleep(9999)
+
+
+
+def bpf_make_single_elem_map(init: bytes) -> None:
+    # bpf(BPF_MAP_CREATE, {map_type=BPF_MAP_TYPE_ARRAY, key_size=4, value_size=4, max_entries=1, map_flags=BPF_F_MMAPABLE, inner_map_fd=0, map_name="libbpf_mmap", map_ifindex=0, btf_fd=0, btf_key_type_id=0, btf_value_type_id=0, btf_vmlinux_value_type_id=0, map_extra=0}, 80) = 4
+    syscall_bpf(op=BPF_op.BPF_MAP_CREATE,)
+
 def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
     from io import BytesIO
     elf = ELFFile(BytesIO(elf_bytes))
@@ -182,8 +205,6 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
 
             logging.info(f"relocation {i}: offset={reloc['r_offset']}, symbol (st_name={symbol['st_name']})='{symbol_name}' ({symbol_idx})")
     raise ValueError("OK")
-
-
 
 from pathlib import Path
 relocate_section(Path("uprobe.bpf.o").read_bytes(), "uprobe//")
@@ -365,16 +386,6 @@ def main():
     attr.attach_btf_id = 0 # XXX
     attr.attach_prog_fd = 0 # XXX
     attr.fd_array = 0 # XXX
-
-    # import time, os
-
-    # while True:
-    #     # license_ptr.contents = ctypes.c_ulong(0x66345678)
-    #     a = license_ptr
-    #     for addr in [ctypes.addressof(buf.contents)]:
-    #         # print(f"sudo bash -c 'source common.alias ; rb /proc/{os.getpid()}/mem {hex(addr)} 20'")
-    #         print(f"sudo gdb --batch -p {os.getpid()} -ex 'x/s {hex(addr)}' -ex quit")
-    #     time.sleep(9999)
 
     res = syscall_bpf(
         op=BPF_op.BPF_PROG_LOAD,
