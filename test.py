@@ -8,6 +8,7 @@ from typing import Type, Generator
 
 from elftools.elf.elffile import ELFFile
 from elftools.elf.elffile import ELFFile
+from elftools.elf.sections import Symbol
 
 from inspect import getmembers
 from pprint import pformat
@@ -134,6 +135,19 @@ def find_relevant_relocation_sections(elf: ELFFile, section_name: str) -> Genera
         if elf.get_section(target_section_idx).name == section_name:
             yield s
 
+def symbol_name_extract__quirk(elffile: ELFFile, symbol: Symbol) -> str:
+    """
+    Took from pyelftools/scripts/readelf.py.
+    """
+    symbol_name = symbol.name
+    if (symbol['st_info']['type'] == 'STT_SECTION'
+        and symbol['st_shndx'] != 'SHN_UNDEF'
+        and symbol['st_shndx'] < elffile.num_sections()
+        and symbol['st_name'] == 0):
+        symbol_name = elffile.get_section(symbol['st_shndx']).name
+    assert symbol_name
+    return symbol_name
+
 def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
     from io import BytesIO
     elf = ELFFile(BytesIO(elf_bytes))
@@ -146,6 +160,7 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
     # raise ValueError( elf.get_section_by_name(".strtab").data())
     
     assert len(rel_sections) == 1
+    bpf_maps = set() # bpf-maps creation is lazy - only if some relocation refers section, the map for that section is created.
     for s in rel_sections:
         symtab_nr = s['sh_link']
         symtab = elf.get_section(symtab_nr)
@@ -155,9 +170,17 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
             if (reloc['r_info_type']) != (R_BPF_64_64 := 1):
                 raise NotImplementedError()
             symbol = symtab.get_symbol(symbol_idx := reloc['r_info_sym'])
-            # print(x(next(symtab.iter_symbols())))
-            # raise ValueError([x(y) for y in symtab.iter_symbols()])
-            logging.info(f"relocation {i}: offset={reloc['r_offset']}, symbol (st_name={symbol['st_name']})='{symbol.name}' ({symbol_idx})")
+            if symbol.name:
+                raise NotImplementedError()
+            if symbol['st_info']['type'] != 'STT_SECTION':
+                raise NotImplementedError()
+            
+            if (symbol_name := symbol_name_extract__quirk(elffile=elf, symbol=symbol)) not in bpf_maps:
+                # for section 'symbol_name' we need to create bpf map
+                bpf_maps.add(symbol_name)
+                # TODO
+
+            logging.info(f"relocation {i}: offset={reloc['r_offset']}, symbol (st_name={symbol['st_name']})='{symbol_name}' ({symbol_idx})")
     raise ValueError("OK")
 
 
