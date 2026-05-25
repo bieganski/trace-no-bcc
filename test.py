@@ -143,21 +143,21 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
     rel_sections = list(find_relevant_relocation_sections(elf=elf, section_name=section_name))
     logging.info(f"sections with relocations corresponding to section '{section_name}: {[x.name for x in rel_sections]}")
     # raise ValueError(x(symtab))
+    # raise ValueError( elf.get_section_by_name(".strtab").data())
+    
     assert len(rel_sections) == 1
     for s in rel_sections:
-        symtab = elf.get_section(s["sh_link"])
-        logging.info(f"rel section '{s.name}': corresponding symbol table: '{symtab.name}' ({s['sh_link']})")
+        symtab_nr = s['sh_link']
+        symtab = elf.get_section(symtab_nr)
+        # raise ValueError(len( list ( symtab.iter_symbols())) )
+        logging.info(f"rel section '{s.name}': corresponding symbol table: '{symtab.name}' ({symtab_nr})")
         for i, reloc in enumerate(s.iter_relocations()):
-            reloc_type = reloc['r_info_type']
-            reloc_offset = reloc['r_offset']
-            symbol_idx = reloc['r_info_sym']
-            assert reloc_type == (R_BPF_64_64 := 1)
-            symbol = symtab.get_symbol(symbol_idx)
-            print(x(next(symtab.iter_symbols())))
-            # raise ValueError([x(y) for y in symtab.iter_symbols()])
-            logging.info(f"relocation {i}: offset={reloc_offset}, symbol '{symbol.name}' ({symbol_idx})")
-            if reloc_type != (R_BPF_64_64 := 1):
+            if (reloc['r_info_type']) != (R_BPF_64_64 := 1):
                 raise NotImplementedError()
+            symbol = symtab.get_symbol(symbol_idx := reloc['r_info_sym'])
+            # print(x(next(symtab.iter_symbols())))
+            # raise ValueError([x(y) for y in symtab.iter_symbols()])
+            logging.info(f"relocation {i}: offset={reloc['r_offset']}, symbol (st_name={symbol['st_name']})='{symbol.name}' ({symbol_idx})")
     raise ValueError("OK")
 
 
