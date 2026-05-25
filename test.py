@@ -96,9 +96,13 @@ class BPF_op(IntEnum):
 
 
 bpf_prog_load__bpf_attr = bpf.struct_anon_17
+bpf_map_create__bpf_attr = bpf.struct_anon_12
+bpf_map_update_elem__bpf_attr = bpf.struct_anon_14
+# raise ValueError(dir(bpf_map_update_elem__bpf_attr.unnamed_anon_14_1))
+# bpf_map_update_elem__value__bpf_attr = 
 
 def syscall_bpf_check_result_for_error(op: BPF_op, res: int):
-    if op == bpf.BPF_PROG_LOAD:
+    if op in [bpf.BPF_PROG_LOAD, bpf.BPF_MAP_CREATE, bpf.BPF_MAP_UPDATE_ELEM]:
         if res == -1:
             raise RuntimeError(f"{op.name}: {errno()}")
         else:
@@ -111,7 +115,7 @@ def syscall_bpf(op: BPF_op, attr: ctypes.Union):
     sys_bpf : int = bpf_syscall_nr[system_get_cpu_arch()]
     attr_addr, attr_size = ctypes.addressof(attr), ctypes.sizeof(attr)
     logging.info(f"bpf(op={op.name}, attr={hex(attr_addr)}, size={attr_size})")
-    print(f"attr_addr={hex(attr_addr)}")
+    logging.debug(f"attr_addr={hex(attr_addr)}")
     res = syscall(ctypes.c_int(sys_bpf), ctypes.c_int(op), ctypes.c_ulong(attr_addr), ctypes.c_int(attr_size))
     syscall_bpf_check_result_for_error(op=op, res=res)
     return res
@@ -166,10 +170,35 @@ def __debug_gdb(data: bytes = b"\xde\xad\xbe\xef\00\x11\x22\x33"):
     time.sleep(9999)
 
 
+def _bpf_map_create_single_elem(size: int, map_name: str) -> int:
+    """
+    returns fd
+    """
+    attr = bpf_map_create__bpf_attr()
+    attr.map_type = bpf.BPF_MAP_TYPE_ARRAY
+    attr.key_size = 4
+    attr.value_size = size
+    attr.max_entries = 1
+    attr.map_flags = 0 # XXX
+    attr.map_name = map_name.encode("ascii")
+    fd = syscall_bpf(op=BPF_op.BPF_MAP_CREATE, attr=attr)
+    logging.info(f"BPF map '{map_name}': BPF_MAP_CREATE OK")
+    return fd
 
-def bpf_make_single_elem_map(init: bytes) -> None:
-    # bpf(BPF_MAP_CREATE, {map_type=BPF_MAP_TYPE_ARRAY, key_size=4, value_size=4, max_entries=1, map_flags=BPF_F_MMAPABLE, inner_map_fd=0, map_name="libbpf_mmap", map_ifindex=0, btf_fd=0, btf_key_type_id=0, btf_value_type_id=0, btf_vmlinux_value_type_id=0, map_extra=0}, 80) = 4
-    syscall_bpf(op=BPF_op.BPF_MAP_CREATE,)
+
+def bpf_make_single_elem_map(init: bytes, map_name: str) -> None:
+    """
+    returns fd of newly created BPF map.
+    """
+    fd = _bpf_map_create_single_elem(size=len(init), map_name=map_name)
+    attr = bpf_map_update_elem__bpf_attr()
+    attr.map_fd = fd
+    attr.key = alloc_raw_buffer(data=b"\x00" * 8)
+    attr.value = alloc_raw_buffer(data=init)
+    logging.info(f"BPF_MAP_UPDATE_ELEM: raw pointer k={hex(attr.key)}, v={hex(attr.value)}")
+    syscall_bpf(op=BPF_op.BPF_MAP_UPDATE_ELEM, attr=attr)
+    logging.info(f"BPF map '{map_name}': BPF_MAP_UPDATE_ELEM OK")
+    return fd
 
 def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
     from io import BytesIO
@@ -183,11 +212,10 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
     # raise ValueError( elf.get_section_by_name(".strtab").data())
     
     assert len(rel_sections) == 1
-    bpf_maps = set() # bpf-maps creation is lazy - only if some relocation refers section, the map for that section is created.
+    bpf_maps = set() # BPF map creation is lazy - only if some relocation refers section, the map for that section is created.
     for s in rel_sections:
         symtab_nr = s['sh_link']
         symtab = elf.get_section(symtab_nr)
-        # raise ValueError(len( list ( symtab.iter_symbols())) )
         logging.info(f"rel section '{s.name}': corresponding symbol table: '{symtab.name}' ({symtab_nr})")
         for i, reloc in enumerate(s.iter_relocations()):
             if (reloc['r_info_type']) != (R_BPF_64_64 := 1):
@@ -197,13 +225,21 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
                 raise NotImplementedError()
             if symbol['st_info']['type'] != 'STT_SECTION':
                 raise NotImplementedError()
-            
-            if (symbol_name := symbol_name_extract__quirk(elffile=elf, symbol=symbol)) not in bpf_maps:
-                # for section 'symbol_name' we need to create bpf map
-                bpf_maps.add(symbol_name)
-                # TODO
+            symbol_name = symbol_name_extract__quirk(elffile=elf, symbol=symbol)
 
-            logging.info(f"relocation {i}: offset={reloc['r_offset']}, symbol (st_name={symbol['st_name']})='{symbol_name}' ({symbol_idx})")
+            logging.info(f"processing relocation {i}: offset={reloc['r_offset']}, symbol (st_name={symbol['st_name']})='{symbol_name}' (sym_idx={symbol_idx})")
+
+            if symbol_name not in bpf_maps:
+                logging.info(f"creating BPF map for section {symbol_name}..")
+                section : bytes = elf.get_section_by_name(symbol_name).data()
+                logging.info(f"section '{symbol_name}' size={len(section)}")
+                map_name = f"_map_{symbol_name}"
+                bpf_make_single_elem_map(init=section, map_name=map_name)
+                logging.info(f"section '{symbol_name}': BPF map '{map_name}' created. For debug use 'sudo bpftool map dump name {map_name}'")
+                bpf_maps.add(symbol_name)
+            else:
+                logging.debug(f"skipping BPF map creation for section {symbol_name} (reason: already there)")
+
     raise ValueError("OK")
 
 from pathlib import Path
