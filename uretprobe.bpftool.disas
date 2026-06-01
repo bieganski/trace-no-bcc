@@ -1,0 +1,11 @@
+// not sure if coherent 
+
+int uprobe_funcname(void * ctx):
+; bpf_printk("dupa");
+   0: (18) r1 = map[id:522][0]+0
+   2: (b7) r2 = 5
+   3: (85) call bpf_trace_printk#-112832
+; return 0;
+   4: (b7) r0 = 0
+   5: (95) exit
+
