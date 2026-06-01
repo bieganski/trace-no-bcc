@@ -239,22 +239,23 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
                 fd = bpf_maps[map_name]
         
             # all modifications to 'insn' will be reflected in 'to_relocate' value.
-            insn = memoryview(to_relocate)[reloc['r_offset']:reloc['r_offset'] + 8]
+            off = reloc['r_offset']
+            orig_insn = to_relocate[off:off + 8]
+            insn = memoryview(to_relocate)[off:off + 8]
             insn = bpf.struct_bpf_insn.from_buffer(insn)
             assert insn.code == 0x18
             assert insn.src_reg == 0
             assert insn.off == 0
-            assert insn.imm == 0, insn.imm
-            insn.src_reg = bpf.BPF_PSEUDO_MAP_FD
+            imm64 = memoryview(to_relocate)[off + 8:off + 16]  # next "instruction"
+            assert insn.imm <= 255
+            imm64[0] = insn.imm
             insn.imm = fd
-            print(insn.off)
-            
-            # raise ValueError(insn.code)
-            # raise ValueError(bpf.struct_bpf_insn.from_buffer(insn))
-            # assert insn[0] == 0x18
-            print("AAA ", bytes(insn))
+            insn.src_reg = bpf.BPF_PSEUDO_MAP_VALUE
 
-    raise ValueError("OK")
+            logging.info(f"rewritten insn {orig_insn} into {[hex(x) for x in bytes(insn)]}, and following imm64={bytes(imm64)}")
+
+    raise ValueError(to_relocate)
+    return to_relocate
 
 from pathlib import Path
 relocate_section(Path("uprobe.bpf.o").read_bytes(), "uprobe//")
