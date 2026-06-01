@@ -24,7 +24,7 @@ assert bytes(insn) == b'\x00\x00\x00\x00\x03\x00\x00\x00'
 one = b'\x00\x00\x00\x00\x00\x00\x00\xf0'
 assert ctypes.c_uint64.from_buffer_copy(one).value == 0xf000_0000_0000_0000
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 libc = ctypes.CDLL(None)
 syscall = libc.syscall
@@ -179,7 +179,7 @@ def _bpf_map_create_single_elem(size: int, map_name: str) -> int:
     attr.key_size = 4
     attr.value_size = size
     attr.max_entries = 1
-    attr.map_flags = 0 # XXX
+    attr.map_flags = 0 # XXX possibly READ_ONLY
     attr.map_name = map_name.encode("ascii")
     fd = syscall_bpf(op=BPF_op.BPF_MAP_CREATE, attr=attr)
     logging.info(f"BPF map '{map_name}': BPF_MAP_CREATE OK")
@@ -203,13 +203,11 @@ def bpf_make_single_elem_map(init: bytes, map_name: str) -> None:
 def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
     from io import BytesIO
     elf = ELFFile(BytesIO(elf_bytes))
-    to_relocate : bytes = elf.get_section_by_name(section_name).data()
+    to_relocate = bytearray(elf.get_section_by_name(section_name).data())
     logging.info(f"relocating section '{section_name}' ({len(to_relocate)} bytes)..")
     logging.info(f"locating relocations corresponding to section '{section_name}'..")
     rel_sections = list(find_relevant_relocation_sections(elf=elf, section_name=section_name))
     logging.info(f"sections with relocations corresponding to section '{section_name}: {[x.name for x in rel_sections]}")
-    # raise ValueError(x(symtab))
-    # raise ValueError( elf.get_section_by_name(".strtab").data())
     
     assert len(rel_sections) == 1
     bpf_maps = set() # BPF map creation is lazy - only if some relocation refers section, the map for that section is created.
@@ -239,6 +237,15 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
                 bpf_maps.add(symbol_name)
             else:
                 logging.debug(f"skipping BPF map creation for section {symbol_name} (reason: already there)")
+        
+            # all modifications to 'insn' will be reflected in 'to_relocate' value.
+            insn = memoryview(to_relocate)[reloc['r_offset']:reloc['r_offset'] + 8]
+            insn = bpf.struct_bpf_insn.from_buffer(insn)
+            assert insn.code == 0x18
+            # raise ValueError(insn.code)
+            # raise ValueError(bpf.struct_bpf_insn.from_buffer(insn))
+            # assert insn[0] == 0x18
+            print("AAA ", bytes(insn))
 
     raise ValueError("OK")
 
