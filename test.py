@@ -186,7 +186,7 @@ def _bpf_map_create_single_elem(size: int, map_name: str) -> int:
     return fd
 
 
-def bpf_make_single_elem_map(init: bytes, map_name: str) -> None:
+def bpf_make_single_elem_map(init: bytes, map_name: str) -> int:
     """
     returns fd of newly created BPF map.
     """
@@ -210,7 +210,7 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
     logging.info(f"sections with relocations corresponding to section '{section_name}: {[x.name for x in rel_sections]}")
     
     assert len(rel_sections) == 1
-    bpf_maps = set() # BPF map creation is lazy - only if some relocation refers section, the map for that section is created.
+    bpf_maps : dict[str, int] = dict() # BPF map creation is lazy - only if some relocation refers section, the map for that section is created.
     for s in rel_sections:
         symtab_nr = s['sh_link']
         symtab = elf.get_section(symtab_nr)
@@ -227,21 +227,28 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
 
             logging.info(f"processing relocation {i}: offset={reloc['r_offset']}, symbol (st_name={symbol['st_name']})='{symbol_name}' (sym_idx={symbol_idx})")
 
-            if symbol_name not in bpf_maps:
+            if (map_name := f"_map_{symbol_name}") not in bpf_maps:
                 logging.info(f"creating BPF map for section {symbol_name}..")
                 section : bytes = elf.get_section_by_name(symbol_name).data()
                 logging.info(f"section '{symbol_name}' size={len(section)}")
-                map_name = f"_map_{symbol_name}"
-                bpf_make_single_elem_map(init=section, map_name=map_name)
+                fd = bpf_make_single_elem_map(init=section, map_name=map_name)
                 logging.info(f"section '{symbol_name}': BPF map '{map_name}' created. For debug use 'sudo bpftool map dump name {map_name}'")
-                bpf_maps.add(symbol_name)
+                bpf_maps[map_name] = fd
             else:
                 logging.debug(f"skipping BPF map creation for section {symbol_name} (reason: already there)")
+                fd = bpf_maps[map_name]
         
             # all modifications to 'insn' will be reflected in 'to_relocate' value.
             insn = memoryview(to_relocate)[reloc['r_offset']:reloc['r_offset'] + 8]
             insn = bpf.struct_bpf_insn.from_buffer(insn)
             assert insn.code == 0x18
+            assert insn.src_reg == 0
+            assert insn.off == 0
+            assert insn.imm == 0, insn.imm
+            insn.src_reg = bpf.BPF_PSEUDO_MAP_FD
+            insn.imm = fd
+            print(insn.off)
+            
             # raise ValueError(insn.code)
             # raise ValueError(bpf.struct_bpf_insn.from_buffer(insn))
             # assert insn[0] == 0x18
