@@ -5,8 +5,8 @@ import platform
 from enum import Enum, IntEnum, auto
 import logging
 from typing import Type, Generator
+from io import BytesIO
 
-from elftools.elf.elffile import ELFFile
 from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import Symbol
 
@@ -201,7 +201,6 @@ def bpf_make_single_elem_map(init: bytes, map_name: str) -> int:
     return fd
 
 def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
-    from io import BytesIO
     elf = ELFFile(BytesIO(elf_bytes))
     to_relocate = bytearray(elf.get_section_by_name(section_name).data())
     logging.info(f"relocating section '{section_name}' ({len(to_relocate)} bytes)..")
@@ -253,164 +252,24 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
             insn.src_reg = bpf.BPF_PSEUDO_MAP_VALUE
 
             logging.info(f"rewritten insn {orig_insn} into {[hex(x) for x in bytes(insn)]}, and following imm64={bytes(imm64)}")
+    return bytes(to_relocate)
 
-    raise ValueError(to_relocate)
-    return to_relocate
+def float2int_safe(val: float) -> int:
+    assert val.is_integer()
+    return int(val)
 
-from pathlib import Path
-relocate_section(Path("uprobe.bpf.o").read_bytes(), "uprobe//")
-def iterate_bpf_relocations(elf_path):
-    global x # XXX
-    with open(elf_path, 'rb') as f:
-        elf = ELFFile(f)
-        
-        # Iterate through sections
-        for section in elf.iter_sections():
-            # Check if this is a relocation section
-            if section.header.sh_type not in ('SHT_REL', 'SHT_RELA'):
-                continue
-            
-            # Get the section these relocations apply to
-            target_section_idx = section.header.sh_info
-            target_section = elf.get_section(target_section_idx)
-            # raise ValueError(x(target_section))
-            
-            print(f"\nRelocations for section: {target_section.name}")
-            
-            # Iterate through relocations
-            for reloc in section.iter_relocations():
-                # BPF relocation types
-                reloc_type = reloc['r_info_type']
-                reloc_offset = reloc['r_offset']
-                symbol_idx = reloc['r_info_sym']
-
-                if reloc_type != (R_BPF_64_64 := 1):
-                    continue
-                print(reloc.entry)
-                continue
-            else:
-                symtab = elf.get_section_by_name('.symtab')
-                # raise ValueError(symtab["st_shndx"])
-                raise ValueError([x["st_shndx"] for x in symtab.iter_symbols()])
-                symbol = symtab.get_symbol(4)  # or list(symtab.iter_symbols())[27]
-                raise ValueError(getmembers(symbol))
-                # sec_name =".symtab"
-                # symbols : list[bytes] = elf.get_section_by_name(sec_name).data().split(b"\x00")
-                # raise ValueError(dict(enumerate(symbols)))
-
-                symbol_tbl_idx = reloc.entry.r_info_sym
-                
-                ##
-                sec_name =".strtab"
-                symbols : list[bytes] = elf.get_section_by_name(sec_name).data().split(b"\x00")
-                symbols = [x.decode("ascii") for x in symbols]
-                from pathlib import Path
-                for x in Path("dupa").read_text().splitlines():
-                    if not x:
-                        continue
-                    # print(symbols)
-                    b : bytes = elf.get_section_by_name(sec_name).data()
-                    print(b.find(x.encode()))
-                    print(symbols.index(x))
-                ##
-                
-                print(symbol_tbl_idx, symbols.get_string(symbol_tbl_idx))
-                continue
-
-                symbol_table = elf.get_section(section['sh_link'])
-                symbol = symbol_table.get_symbol(symbol_idx)
-                print(symbol_table.data().decode(errors="ignore"))
-                
-                # print(x(symbol))
-                continue
-            # for relocation in section.iter_relocations():
-            #     symbol = symbol_table.get_symbol(relocation['r_info_sym'])
-                
-                # Get symbol name
-                # symtab = elf.get_section(section.header.sh_link)
-                sec_name = ".symtab"
-                symtab_header = elf.get_section_by_name(sec_name).header
-                symbols : list[bytes] = elf.get_section_by_name(sec_name).data().split(b"\x00")
-                raise ValueError(symbols)
-                symtab:  int = symtab_header.sh_link
-                # raise ValueError(( elf.get_section_by_name(".strtab") ).header.sh_link )
-                # raise ValueError(section.header.sh_link)
-                # :
-                print(symbols[symbol_idx])
-                continue
-                symbol = symtab.get_symbol(symbol_idx)
-                print(symbol_idx)
-                symbol_name = symbol.name
-                
-                # BPF-specific relocation types
-                R_BPF_NONE = 0
-                R_BPF_64_64 = 1
-                R_BPF_64_ABS64 = 2
-                R_BPF_64_ABS32 = 3
-                R_BPF_64_NODYLD32 = 4
-                R_BPF_64_32 = 10
-                
-                reloc_type_names = {
-                    R_BPF_NONE: 'R_BPF_NONE',
-                    R_BPF_64_64: 'R_BPF_64_64',
-                    R_BPF_64_ABS64: 'R_BPF_64_ABS64',
-                    R_BPF_64_ABS32: 'R_BPF_64_ABS32',
-                    R_BPF_64_NODYLD32: 'R_BPF_64_NODYLD32',
-                    R_BPF_64_32: 'R_BPF_64_32',
-                }
-                
-                type_name = reloc_type_names.get(reloc_type, f'UNKNOWN({reloc_type})')
-                
-                
-                
-                # For R_BPF_64_64, this is typically a map reference
-                if reloc_type == R_BPF_64_64:
-                    print(f"  Offset: 0x{reloc_offset:x}")
-                    print(f"    Type: {type_name}")
-                    print(f"    Symbol: {symbol_name}")
-                else:
-                    pass
-                    
-
-# Usage
-iterate_bpf_relocations('uprobe.bpf.o')
-raise ValueError("OK")
-
-
-def main():
+def bpf_prog_load(code: bytes, prog_name: str):
     """
-    bpf(BPF_PROG_LOAD, {
-        prog_type=BPF_PROG_TYPE_KPROBE,
-        insn_cnt=7,
-        insns=0x64254dfa7950,
-        license="Dual BSD/GPL",
-        log_level=0,
-        log_size=0,
-        log_buf=NULL,
-        kern_version=KERNEL_VERSION(6, 8, 12),
-        prog_flags=0,
-        prog_name="xdddwrite",
-        prog_ifindex=0,
-        expected_attach_type=BPF_CGROUP_INET_INGRESS,
-        prog_btf_fd=4,
-        func_info_rec_size=8,
-        func_info=0x64254dfa6bc0,
-        func_info_cnt=1,
-        line_info_rec_size=16,
-        line_info=0x64254dfa6be0,
-        line_info_cnt=3,
-        attach_btf_id=0,
-        attach_prog_fd=0,
-        fd_array=NULL}, 148) = 5
+    'code' needs to be relocated (and corresponding map file descriptors opened).
+    returns file descriptor of loaded program.
     """
+
     attr = bpf_prog_load__bpf_attr()
+    ctypes_code = ctypes.create_string_buffer(init=code, size=len(code))
 
-    minimal_insn_bytes = b"\xb7\x00\x00\x00\x00\x00\x00\x00\x95\x00\x00\x00\x00\x00\x00\x00"
-    minimal_bpf_prog = ctypes.create_string_buffer(init=minimal_insn_bytes, size=len(minimal_insn_bytes))
-    
     attr.prog_type = bpf.BPF_PROG_TYPE_KPROBE
-    attr.insn_cnt = 2
-    attr.insns = ctypes.cast(minimal_bpf_prog, ctypes.c_char_p) # ctypes.addressof(attr)  # XXX - whatever valid addr
+    attr.insn_cnt = float2int_safe(len(ctypes_code) / 8)
+    attr.insns = ctypes.cast(ctypes_code, ctypes.c_char_p)
     # license_ptr = ctypes.create_string_buffer(init=b"Dual BSD/GPL", size=len(b"Dual BSD/GPL")),
     # buf = alloc_writable_buf(type=ctypes.c_char * 12, )
     # buf = ctypes.cast(buf, ctypes.c_void_p)
@@ -426,7 +285,7 @@ def main():
     KERNEL_VERSION = lambda a, b, c: (((a) << 16) + ((b) << 8) + (c))
     attr.kern_version = KERNEL_VERSION(6, 17, 0)
     attr.prog_flags = 0
-    attr.prog_name = b"hehe"
+    attr.prog_name = prog_name.encode("ascii")
     attr.prog_ifindex = 0
     attr.expected_attach_type=bpf.BPF_CGROUP_INET_INGRESS
     attr.prog_btf_fd = 4 # XXX
@@ -443,10 +302,20 @@ def main():
         attr=attr,
     )
 
-    print(f"bpf_prog_load fd={res}")
+    return res
+
+def main():
+    from pathlib import Path
+    elf_bytes = Path("uprobe.bpf.o").read_bytes()
+    code : bytes = relocate_section(elf_bytes=elf_bytes, section_name="uprobe//")
+    # code = ELFFile(BytesIO(elf_bytes)).get_section_by_name("uprobe//").data()
+    assert len(code) == 8 * 12
+    prog_fd = bpf_prog_load(code=code[:6*8], prog_name="dupa")
+
     import time
     print("sudo bpftool prog show")
     time.sleep(9999)
+
 
 if __name__ == "__main__":
     from argparse import ArgumentParser

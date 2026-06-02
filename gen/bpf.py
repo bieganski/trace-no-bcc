@@ -1657,7 +1657,7 @@ struct_anon_17._anonymous_ = [
 struct_anon_17._fields_ = [
     ('prog_type', __u32),
     ('insn_cnt', __u32),
-    ('insns', __u64), # c_char_p), # XXX __u64),
+    ('insns', c_char_p), # __u64), # c_char_p), # XXX __u64),
     ('license', c_char_p), # XXX __u64),
     ('log_level', __u32),
     ('log_size', __u32),
