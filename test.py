@@ -6,6 +6,7 @@ from enum import Enum, IntEnum, auto
 import logging
 from typing import Type, Generator
 from io import BytesIO
+from pathlib import Path
 
 from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import Symbol
@@ -51,6 +52,13 @@ bpf_syscall_nr = {
     CPU_Arch.riscv64: 280,
     CPU_Arch.armv7l: 386,
 }
+
+perf_event_open_syscall_nr = {
+    CPU_Arch.x86_64: 298,
+    CPU_Arch.riscv64: 241,
+    CPU_Arch.armv7l: 241,
+}
+
 class BPF_op(IntEnum):
     """
     copy-pasted from gen/bpf.py
@@ -304,6 +312,57 @@ def bpf_prog_load(code: bytes, prog_name: str):
 
     return res
 
+
+# XXX: move it higher
+#
+from gen.libbpf import struct_perf_event_attr
+def syscall_perf_event_open(attr: ctypes.Structure, pid: int = -1, cpu: int = 0) -> int:
+    """
+    'pid' and 'cpu' semantics explained at https://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    int syscall(SYS_perf_event_open, struct perf_event_attr *attr, pid_t pid, int cpu, int group_fd, unsigned long flags);
+
+    perf_event_open({type=0x9 /* PERF_TYPE_??? */, size=0x88 /* PERF_ATTR_SIZE_??? */, config=0, sample_period=0, sample_type=0, read_format=0, precise_ip=0 /* arbitrary skid */, ...}, -1, 0, -1, PERF_FLAG_FD_CLOEXEC) = 6
+    """
+    sys_perf_event_open : int = perf_event_open_syscall_nr[system_get_cpu_arch()]
+    group_fd = ctypes.c_int(group_leader := -1)
+    flags = ctypes.c_int(PERF_FLAG_FD_CLOEXEC := 8)
+    res = syscall(
+        ctypes.c_int(sys_perf_event_open),
+        ctypes.c_ulong(ctypes.addressof(attr)),
+        ctypes.c_int(pid),
+        ctypes.c_int(cpu),
+        group_fd,
+        flags,
+    )
+    logging.info(f"perf_event_open()")
+    return res
+
+# next step:
+# bpf(BPF_LINK_CREATE, {link_create={prog_fd=5<anon_inode:bpf-prog>, target_fd=6<anon_inode:[perf_event]>, attach_type=BPF_PERF_EVENT, flags=0, perf_event={bpf_cookie=0}}}, 64) = 7<anon_inode:bpf_link>
+
+def uprobe_perf_event_open(elf: Path, symbol_or_offset: str | int) -> None:
+    if not isinstance(symbol_or_offset, int):
+        offset = ...
+        raise NotImplementedError()
+    else:
+        offset = symbol_or_offset
+    del symbol_or_offset
+    attr = struct_perf_event_attr()
+    attr.type = (UPROBE_EVENT_TYPE := 0x9)
+    attr.size = ctypes.sizeof(struct_perf_event_attr)
+    path : bytes = str(elf.expanduser().resolve().absolute()).encode("ascii")
+    ctypes_path = alloc_raw_buffer(path)
+
+    assert attr.size == 0x88
+    attr.uprobe_path = ctypes_path
+    attr.kprobe_func = ctypes_path
+    attr.kprobe_addr = offset
+    attr.probe_offset = offset
+    attr.config2 = offset
+    res = syscall_perf_event_open(attr)
+    if res < 0:
+        raise RuntimeError(f"perf_event_open: FAILED: {errno()}")
+
 def main():
     from pathlib import Path
     elf_bytes = Path("uprobe.bpf.o").read_bytes()
@@ -314,6 +373,12 @@ def main():
 
     import time
     print("sudo bpftool prog show")
+
+    uprobe_perf_event_open(
+        elf=Path("/lib/x86_64-linux-gnu/libc.so.6"),
+        symbol_or_offset=0xa50a0,
+    )
+
     time.sleep(9999)
 
 
