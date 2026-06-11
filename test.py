@@ -8,15 +8,18 @@ from typing import Type, Generator
 from io import BytesIO
 from pathlib import Path
 
+from elfmanip import find_section_or_raise
+from blobmanip import op_write_bytes, WriteContext
+
 from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import Symbol
+
+from gen.libbpf import struct_perf_event_attr
+import gen.bpf as bpf
 
 from inspect import getmembers
 from pprint import pformat
 x = lambda y: pformat(getmembers(y))
-
-
-import gen.bpf as bpf
 
 assert 8 == ctypes.sizeof(bpf.struct_bpf_insn)
 insn = bpf.struct_bpf_insn()
@@ -307,19 +310,12 @@ def bpf_prog_load(code: bytes, prog_name: str):
         op=BPF_op.BPF_PROG_LOAD,
         attr=attr,
     )
-
     return res
 
-
-# XXX: move it higher
-#
-from gen.libbpf import struct_perf_event_attr
 def syscall_perf_event_open(attr: ctypes.Structure, pid: int = -1, cpu: int = 0) -> int:
     """
     'pid' and 'cpu' semantics explained at https://man7.org/linux/man-pages/man2/perf_event_open.2.html
     int syscall(SYS_perf_event_open, struct perf_event_attr *attr, pid_t pid, int cpu, int group_fd, unsigned long flags);
-
-    perf_event_open({type=0x9 /* PERF_TYPE_??? */, size=0x88 /* PERF_ATTR_SIZE_??? */, config=0, sample_period=0, sample_type=0, read_format=0, precise_ip=0 /* arbitrary skid */, ...}, -1, 0, -1, PERF_FLAG_FD_CLOEXEC) = 6
     """
     sys_perf_event_open : int = perf_event_open_syscall_nr[system_get_cpu_arch()]
     group_fd = ctypes.c_int(group_leader := -1)
@@ -374,9 +370,27 @@ def uprobe_perf_event_open(elf: Path, symbol_or_offset: str | int) -> int:
         raise RuntimeError(f"perf_event_open: FAILED: {errno()}")
     return fd
 
+def bpf_elf_adjust_to_cpu_arch(elf_bytes: bytes, native_arch : CPU_Arch = system_get_cpu_arch()) -> bytes:
+
+    for arch in CPU_Arch:
+        sec_name = f".rodata.arch_is_{arch.value}"
+        arch_section = find_section_or_raise(elf_content=elf_bytes, sec_name=sec_name)
+        assert arch_section.content_length == 4
+
+        val = bytes(ctypes.c_uint32(1 if arch == native_arch else 0))
+
+        logging.info(f"writing {val} to section '{sec_name}' (off={hex(arch_section.sh_offset)})")
+
+        op = WriteContext(offset=arch_section.content_file_offset, bytes_to_write=val)
+        elf_bytes = op_write_bytes(context=op, input_data=elf_bytes)
+
+    return elf_bytes
+
+
 def main():
     from pathlib import Path
     elf_bytes = Path("uprobe.bpf.o").read_bytes()
+    elf_bytes = bpf_elf_adjust_to_cpu_arch(elf_bytes=elf_bytes)
     code : bytes = relocate_section(elf_bytes=elf_bytes, section_name="uprobe//")
     # code = ELFFile(BytesIO(elf_bytes)).get_section_by_name("uprobe//").data()
     assert len(code) == 8 * 12
