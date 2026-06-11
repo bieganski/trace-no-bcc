@@ -73,8 +73,8 @@ class BPF_op(IntEnum):
     BPF_OBJ_GET = auto()
     BPF_PROG_ATTACH = auto()
     BPF_PROG_DETACH = auto()
-    BPF_PROG_TEST_RUN = auto()
-    BPF_PROG_RUN = auto()
+    BPF_PROG_TEST_RUN = 10
+    BPF_PROG_RUN = 10
     BPF_PROG_GET_NEXT_ID = auto()
     BPF_MAP_GET_NEXT_ID = auto()
     BPF_PROG_GET_FD_BY_ID = auto()
@@ -102,15 +102,13 @@ class BPF_op(IntEnum):
     BPF_PROG_BIND_MAP = auto()
     BPF_TOKEN_CREATE = auto()
 
-
 bpf_prog_load__bpf_attr = bpf.struct_anon_17
 bpf_map_create__bpf_attr = bpf.struct_anon_12
 bpf_map_update_elem__bpf_attr = bpf.struct_anon_14
-# raise ValueError(dir(bpf_map_update_elem__bpf_attr.unnamed_anon_14_1))
-# bpf_map_update_elem__value__bpf_attr = 
+bpf_link_create__bpf_attr = bpf.struct_anon_45
 
 def syscall_bpf_check_result_for_error(op: BPF_op, res: int):
-    if op in [bpf.BPF_PROG_LOAD, bpf.BPF_MAP_CREATE, bpf.BPF_MAP_UPDATE_ELEM]:
+    if op in [bpf.BPF_PROG_LOAD, bpf.BPF_MAP_CREATE, bpf.BPF_MAP_UPDATE_ELEM, bpf.BPF_LINK_CREATE]:
         if res == -1:
             raise RuntimeError(f"{op.name}: {errno()}")
         else:
@@ -337,10 +335,22 @@ def syscall_perf_event_open(attr: ctypes.Structure, pid: int = -1, cpu: int = 0)
     logging.info(f"perf_event_open()")
     return res
 
-# next step:
-# bpf(BPF_LINK_CREATE, {link_create={prog_fd=5<anon_inode:bpf-prog>, target_fd=6<anon_inode:[perf_event]>, attach_type=BPF_PERF_EVENT, flags=0, perf_event={bpf_cookie=0}}}, 64) = 7<anon_inode:bpf_link>
+def bpf_link_create(prog_fd: int, perf_event_fd: int) -> int:
+    """
+    returns fd
+    """
+    attr = bpf_link_create__bpf_attr()
+    attr.attach_type = ctypes.c_uint32(bpf.BPF_PERF_EVENT)
+    attr.unnamed_anon_45_1 = bpf.union_anon_32()
+    attr.unnamed_anon_45_1.prog_fd = ctypes.c_uint32(prog_fd)
+    attr.unnamed_anon_45_2 = bpf.union_anon_33()
+    attr.unnamed_anon_45_2.target_fd = ctypes.c_uint32(perf_event_fd)
+    fd = syscall_bpf(op=BPF_op.BPF_LINK_CREATE, attr=attr)
+    logging.info(f"bpf(BPF_LINK_CREATE) ok")
+    return fd
 
-def uprobe_perf_event_open(elf: Path, symbol_or_offset: str | int) -> None:
+
+def uprobe_perf_event_open(elf: Path, symbol_or_offset: str | int) -> int:
     if not isinstance(symbol_or_offset, int):
         offset = ...
         raise NotImplementedError()
@@ -359,9 +369,10 @@ def uprobe_perf_event_open(elf: Path, symbol_or_offset: str | int) -> None:
     attr.kprobe_addr = offset
     attr.probe_offset = offset
     attr.config2 = offset
-    res = syscall_perf_event_open(attr)
-    if res < 0:
+    fd = syscall_perf_event_open(attr)
+    if fd < 0:
         raise RuntimeError(f"perf_event_open: FAILED: {errno()}")
+    return fd
 
 def main():
     from pathlib import Path
@@ -374,10 +385,12 @@ def main():
     import time
     print("sudo bpftool prog show")
 
-    uprobe_perf_event_open(
+    event_fd = uprobe_perf_event_open(
         elf=Path("/lib/x86_64-linux-gnu/libc.so.6"),
         symbol_or_offset=0xa50a0,
     )
+
+    bpf_link_create(prog_fd=prog_fd, perf_event_fd=event_fd)
 
     time.sleep(9999)
 
