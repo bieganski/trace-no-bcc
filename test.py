@@ -386,6 +386,13 @@ def bpf_elf_adjust_to_cpu_arch(elf_bytes: bytes, native_arch : CPU_Arch = system
 
     return elf_bytes
 
+def find_all_bpf_programs_by_symbols(elf_bytes: bytes) -> dict[str, tuple[int, int]]:
+    """
+    returns a map from symbol (program) name to (file offset, size in bytes).
+    size in bytes will be positive integer, divisible by 8 (eBPF instruction size).
+    """
+    pass
+
 
 def main():
     from pathlib import Path
@@ -397,7 +404,7 @@ def main():
     prog_fd = bpf_prog_load(code=code[:6*8], prog_name="dupa")
 
     import time
-    print("sudo bpftool prog show")
+    print("$    sudo bpftool prog show")
 
     event_fd = uprobe_perf_event_open(
         elf=Path("/lib/x86_64-linux-gnu/libc.so.6"),
@@ -405,6 +412,8 @@ def main():
     )
 
     bpf_link_create(prog_fd=prog_fd, perf_event_fd=event_fd)
+
+    print("$    sudo cat /sys/kernel/debug/tracing/trace_pipe")
 
     time.sleep(9999)
 
