@@ -386,18 +386,39 @@ def bpf_elf_adjust_to_cpu_arch(elf_bytes: bytes, native_arch : CPU_Arch = system
 
     return elf_bytes
 
+
+def determine_retprobe_bit(uprobe_not_kprobe: bool) -> int:
+    """
+    libbpf reads from /sys/bus/event_source/devices/{uprobe|kprobe}/format/retprobe,
+    we go yolo with hardcoded value.
+    """
+    return 0
+
+
 def find_all_bpf_programs_by_symbols(elf_bytes: bytes) -> dict[str, tuple[int, int]]:
     """
     returns a map from symbol (program) name to (file offset, size in bytes).
     size in bytes will be positive integer, divisible by 8 (eBPF instruction size).
     """
-    pass
+    elf_file = ELFFile(BytesIO(elf_bytes))
+    from elftools.elf.sections import SymbolTableSection
+    symbol_tables = [s for s in elf_file.iter_sections() if isinstance(s, SymbolTableSection)]
+    assert len(symbol_tables) == 1
+    res = dict()
+    for section in symbol_tables:
+        for symbol in section.iter_symbols():
+            if symbol['st_info']['type'] == "STT_FUNC":
+                res[symbol.name] = (symbol["st_value"], symbol['st_size'])
+    logging.info(f"eBPF programs found: {res}")
+    return res
 
 
 def main():
     from pathlib import Path
     elf_bytes = Path("uprobe.bpf.o").read_bytes()
     elf_bytes = bpf_elf_adjust_to_cpu_arch(elf_bytes=elf_bytes)
+    _ = find_all_bpf_programs_by_symbols(elf_bytes=elf_bytes)
+    raise ValueError("OK")
     code : bytes = relocate_section(elf_bytes=elf_bytes, section_name="uprobe//")
     # code = ELFFile(BytesIO(elf_bytes)).get_section_by_name("uprobe//").data()
     assert len(code) == 8 * 12
