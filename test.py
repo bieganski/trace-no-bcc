@@ -294,7 +294,7 @@ def bpf_prog_load(code: bytes, prog_name: str):
     KERNEL_VERSION = lambda a, b, c: (((a) << 16) + ((b) << 8) + (c))
     attr.kern_version = KERNEL_VERSION(6, 17, 0)
     attr.prog_flags = 0
-    attr.prog_name = prog_name.encode("ascii")
+    attr.prog_name = prog_name[:15].encode("ascii")
     attr.prog_ifindex = 0
     attr.expected_attach_type=bpf.BPF_CGROUP_INET_INGRESS
     attr.prog_btf_fd = 4 # XXX
@@ -346,13 +346,8 @@ def bpf_link_create(prog_fd: int, perf_event_fd: int) -> int:
     return fd
 
 
-def uprobe_perf_event_open(elf: Path, symbol_or_offset: str | int) -> int:
-    if not isinstance(symbol_or_offset, int):
-        offset = ...
-        raise NotImplementedError()
-    else:
-        offset = symbol_or_offset
-    del symbol_or_offset
+def uprobe_perf_event_open(elf: Path, offset: int, is_retprobe: bool) -> int:
+    logging.info(f"uprobe_perf_event_open: {elf}:{offset}, retprobe={is_retprobe}")
     attr = struct_perf_event_attr()
     attr.type = (UPROBE_EVENT_TYPE := 0x9)
     attr.size = ctypes.sizeof(struct_perf_event_attr)
@@ -365,6 +360,7 @@ def uprobe_perf_event_open(elf: Path, symbol_or_offset: str | int) -> int:
     attr.kprobe_addr = offset
     attr.probe_offset = offset
     attr.config2 = offset
+    attr.config = (1 if is_retprobe else 0) << determine_retprobe_bit(uprobe_not_kprobe=True)
     fd = syscall_perf_event_open(attr)
     if fd < 0:
         raise RuntimeError(f"perf_event_open: FAILED: {errno()}")
@@ -394,8 +390,10 @@ def determine_retprobe_bit(uprobe_not_kprobe: bool) -> int:
     """
     return 0
 
+def program_is_retprobe(symbol: str) -> bool:
+    return "ret" in symbol
 
-def find_all_bpf_programs_by_symbols(elf_bytes: bytes) -> dict[str, tuple[int, int]]:
+def elf_iter_symbols(elf_bytes: bytes) -> dict[str, tuple[int, int]]:
     """
     returns a map from symbol (program) name to (file offset, size in bytes).
     size in bytes will be positive integer, divisible by 8 (eBPF instruction size).
@@ -409,33 +407,40 @@ def find_all_bpf_programs_by_symbols(elf_bytes: bytes) -> dict[str, tuple[int, i
         for symbol in section.iter_symbols():
             if symbol['st_info']['type'] == "STT_FUNC":
                 res[symbol.name] = (symbol["st_value"], symbol['st_size'])
-    logging.info(f"eBPF programs found: {res}")
     return res
 
+def symbol_offset_and_size(symbol: str, elf_bytes: bytes) -> tuple[int, int]:
+    map = elf_iter_symbols(elf_bytes=elf_bytes)
+    if symbol not in map:
+        raise RuntimeError(f"could not find symbol {symbol}!")
+    offset, size = map[symbol]
+    logging.info(f"located symbol '{symbol}' at offset={hex(offset)} and size={hex(size)}")
+    return offset, size
 
 def main():
     from pathlib import Path
-    elf_bytes = Path("uprobe.bpf.o").read_bytes()
-    elf_bytes = bpf_elf_adjust_to_cpu_arch(elf_bytes=elf_bytes)
-    _ = find_all_bpf_programs_by_symbols(elf_bytes=elf_bytes)
-    raise ValueError("OK")
-    code : bytes = relocate_section(elf_bytes=elf_bytes, section_name="uprobe//")
-    # code = ELFFile(BytesIO(elf_bytes)).get_section_by_name("uprobe//").data()
-    assert len(code) == 8 * 12
-    prog_fd = bpf_prog_load(code=code[:6*8], prog_name="dupa")
+    bpf_elf_bytes = Path("uprobe.bpf.o").read_bytes()
+    bpf_elf_bytes = bpf_elf_adjust_to_cpu_arch(elf_bytes=bpf_elf_bytes)
+    ebpf_programs = elf_iter_symbols(elf_bytes=bpf_elf_bytes)
+    logging.info(f"eBPF programs found: {ebpf_programs}") # XXX - offsets from what??
+    code : bytes = relocate_section(elf_bytes=bpf_elf_bytes, section_name="uprobe//")
+    
+    traced_elf_path = Path("/lib/x86_64-linux-gnu/libc.so.6")
+    traced_symbol = "malloc"
+    traced_symbol_offset = symbol_offset_and_size(elf_bytes=traced_elf_path.read_bytes(), symbol=traced_symbol)[0]
+    for prog_name, (offset, size) in ebpf_programs.items():
+        prog_code = code[offset:offset + size]
+        prog_fd = bpf_prog_load(code=prog_code, prog_name=prog_name)
+        event_fd = uprobe_perf_event_open(
+            elf=traced_elf_path,
+            offset=traced_symbol_offset,
+            is_retprobe=program_is_retprobe(symbol=prog_name)
+        )
+        bpf_link_create(prog_fd=prog_fd, perf_event_fd=event_fd)
 
-    import time
     print("$    sudo bpftool prog show")
-
-    event_fd = uprobe_perf_event_open(
-        elf=Path("/lib/x86_64-linux-gnu/libc.so.6"),
-        symbol_or_offset=0xa50a0,
-    )
-
-    bpf_link_create(prog_fd=prog_fd, perf_event_fd=event_fd)
-
     print("$    sudo cat /sys/kernel/debug/tracing/trace_pipe")
-
+    import time
     time.sleep(9999)
 
 
