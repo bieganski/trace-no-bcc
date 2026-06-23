@@ -278,7 +278,7 @@ def bpf_prog_load(code: bytes, prog_name: str):
 
     attr.prog_type = bpf.BPF_PROG_TYPE_KPROBE
     attr.insn_cnt = float2int_safe(len(ctypes_code) / 8)
-    attr.insns = ctypes.cast(ctypes_code, ctypes.c_char_p)
+    attr.insns = ctypes.cast(ctypes_code, ctypes.c_void_p).value
     # license_ptr = ctypes.create_string_buffer(init=b"Dual BSD/GPL", size=len(b"Dual BSD/GPL")),
     # buf = alloc_writable_buf(type=ctypes.c_char * 12, )
     # buf = ctypes.cast(buf, ctypes.c_void_p)
