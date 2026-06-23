@@ -224,6 +224,7 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
         symtab = elf.get_section(symtab_nr)
         logging.info(f"rel section '{s.name}': corresponding symbol table: '{symtab.name}' ({symtab_nr})")
         for i, reloc in enumerate(s.iter_relocations()):
+            raise ValueError(reloc)
             if (reloc['r_info_type']) != (R_BPF_64_64 := 1):
                 raise NotImplementedError()
             symbol = symtab.get_symbol(symbol_idx := reloc['r_info_sym'])
@@ -255,12 +256,12 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
             assert insn.src_reg == 0
             assert insn.off == 0
             imm64 = memoryview(to_relocate)[off + 8:off + 16]  # next "instruction"
-            assert insn.imm <= 255
-            imm64[0] = insn.imm
+            assert insn.imm <= 255 # XXX
+            imm64[4] = insn.imm # XXX
             insn.imm = fd
             insn.src_reg = bpf.BPF_PSEUDO_MAP_VALUE
 
-            logging.info(f"rewritten insn {orig_insn} into {[hex(x) for x in bytes(insn)]}, and following imm64={bytes(imm64)}")
+            logging.info(f"rewritten insn {orig_insn.hex()} into {bytes(insn).hex()}. following imm64={bytes(imm64).hex()}")
     return bytes(to_relocate)
 
 def float2int_safe(val: float) -> int:
@@ -426,17 +427,15 @@ def main():
     code : bytes = relocate_section(elf_bytes=bpf_elf_bytes, section_name="uprobe//")
     
     traced_elf_path = Path("/lib/x86_64-linux-gnu/libc.so.6")
-    traced_symbol = "malloc"
+    traced_symbol = "clock_nanosleep"
     traced_symbol_offset = symbol_offset_and_size(elf_bytes=traced_elf_path.read_bytes(), symbol=traced_symbol)[0]
     for prog_name, (offset, size) in ebpf_programs.items():
         prog_code = code[offset:offset + size]
-        if not program_is_retprobe(symbol=prog_name):
-            continue # XXX
         prog_fd = bpf_prog_load(code=prog_code, prog_name=prog_name)
         event_fd = uprobe_perf_event_open(
             elf=traced_elf_path,
             offset=traced_symbol_offset,
-            is_retprobe=False, # program_is_retprobe(symbol=prog_name),
+            is_retprobe=program_is_retprobe(symbol=prog_name),
         )
         bpf_link_create(prog_fd=prog_fd, perf_event_fd=event_fd)
 
