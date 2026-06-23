@@ -430,11 +430,13 @@ def main():
     traced_symbol_offset = symbol_offset_and_size(elf_bytes=traced_elf_path.read_bytes(), symbol=traced_symbol)[0]
     for prog_name, (offset, size) in ebpf_programs.items():
         prog_code = code[offset:offset + size]
+        if not program_is_retprobe(symbol=prog_name):
+            continue # XXX
         prog_fd = bpf_prog_load(code=prog_code, prog_name=prog_name)
         event_fd = uprobe_perf_event_open(
             elf=traced_elf_path,
             offset=traced_symbol_offset,
-            is_retprobe=program_is_retprobe(symbol=prog_name)
+            is_retprobe=False, # program_is_retprobe(symbol=prog_name),
         )
         bpf_link_create(prog_fd=prog_fd, perf_event_fd=event_fd)
 
