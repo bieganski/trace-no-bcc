@@ -224,7 +224,6 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
         symtab = elf.get_section(symtab_nr)
         logging.info(f"rel section '{s.name}': corresponding symbol table: '{symtab.name}' ({symtab_nr})")
         for i, reloc in enumerate(s.iter_relocations()):
-            raise ValueError(reloc)
             if (reloc['r_info_type']) != (R_BPF_64_64 := 1):
                 raise NotImplementedError()
             symbol = symtab.get_symbol(symbol_idx := reloc['r_info_sym'])
@@ -252,12 +251,13 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
             orig_insn = to_relocate[off:off + 8]
             insn = memoryview(to_relocate)[off:off + 8]
             insn = bpf.struct_bpf_insn.from_buffer(insn)
+            imm64 = memoryview(to_relocate)[off + 8:off + 16]  # next instruction slot
+            imm64_insn = bpf.struct_bpf_insn.from_buffer(imm64)
             assert insn.code == 0x18
             assert insn.src_reg == 0
             assert insn.off == 0
-            imm64 = memoryview(to_relocate)[off + 8:off + 16]  # next "instruction"
-            assert insn.imm <= 255 # XXX
-            imm64[4] = insn.imm # XXX
+            # actually rewrite.
+            imm64_insn.imm = insn.imm
             insn.imm = fd
             insn.src_reg = bpf.BPF_PSEUDO_MAP_VALUE
 
