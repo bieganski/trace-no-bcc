@@ -4,6 +4,7 @@ from pathlib import Path
 import logging
 import ctypes
 from io import BytesIO
+from typing import Generator
 
 logging.basicConfig(level=logging.INFO)
 
@@ -16,6 +17,7 @@ Elf64_Addr = ctypes.c_uint64
 Elf64_Off = ctypes.c_uint64
 Elf64_Word = ctypes.c_uint32
 Elf64_Xword = ctypes.c_uint64
+Elf64_Sxword = ctypes.c_int64
 Elf64_Half = ctypes.c_uint16
 
 class Elf64_Ehdr(ctypes.Structure):
@@ -61,11 +63,23 @@ class Elf64_Shdr(ctypes.Structure):
     def __repr__(self) -> str:
         return f"section of size {hex(self.content_length)} at file offset {hex(self.content_file_offset)}"
 
+class Elf64_Rel(ctypes.Structure):
+       ("r_offset", Elf64_Addr),
+       ("r_info", Elf64_Xword),
+
+class Elf64_Rela(ctypes.Structure):
+       ("r_offset", Elf64_Addr),
+       ("r_info", Elf64_Xword),
+       ("r_addend", Elf64_Sxword)
+
+
+def iter_relocations(elf_content: bytes, section_header: Elf64_Shdr):
+    raise ValueError(section_header)
 
 def get_null_terminated_str(data: bytes, first_byte_offset: int) -> str:
     return data[first_byte_offset:].split(b"\0")[0].decode("ascii")
 
-def find_section_or_raise(elf_content: bytes, sec_name: str) -> Elf64_Shdr:
+def iter_sections(elf_content: bytes) -> Generator[tuple[None | str, Elf64_Shdr], None, None]: # yields (section_name, section_header)
     stream = BytesIO(elf_content)
 
     if stream.read(4) != bytes([0x7f, ord('E'), ord('L'), ord('F')]):
@@ -95,11 +109,19 @@ def find_section_or_raise(elf_content: bytes, sec_name: str) -> Elf64_Shdr:
     for _ in range(elf_header.e_shnum):
         sec_header = Elf64_Shdr.from_buffer_copy(stream.read(ctypes.sizeof(Elf64_Shdr)))
         if sec_header.sh_name != 0:
-            cur_sec_name = get_null_terminated_str(data=string_table_raw, first_byte_offset=sec_header.sh_name)
-            if sec_name == cur_sec_name:
-                return sec_header
-    else:
-        raise ValueError(f"Could not find section {sec_name} inside ELF")
+            sec_name = get_null_terminated_str(data=string_table_raw, first_byte_offset=sec_header.sh_name)
+        else:
+            sec_name = None
+        yield (sec_name, sec_header)
+
+def get_section(elf_content: bytes, idx: int) -> tuple[str | None, Elf64_Shdr]:
+    return list(iter_sections(elf_content=elf_content))[idx]
+
+def find_section_or_raise(elf_content: bytes, sec_name: str) -> Elf64_Shdr:
+    for name, header in iter_sections(elf_content=elf_content):
+        if name == sec_name:
+            return header
+    raise ValueError(f"Could not find section {sec_name} inside ELF")
 
 def main(elf_path: Path):
     
