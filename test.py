@@ -206,10 +206,10 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
     
     assert len(rel_sections) == 1
     bpf_maps : dict[str, int] = dict() # BPF map creation is lazy - only if some relocation refers section, the map for that section is created.
-    for s_name, s in rel_sections:
+    for s in rel_sections:
         symtab_nr = s.sh_link
         symtab = elf.get_section(symtab_nr)
-        logging.info(f"rel section '{s_name}': corresponding symbol table: '{symtab.name}' ({symtab_nr})")
+        logging.info(f"rel section '{section_name}': corresponding symbol table: '{symtab.name}' ({symtab_nr})")
         for i, reloc in enumerate(iter_relocations(elf_content=elf_bytes, section_header=s)):
             if (reloc['r_info_type']) != (R_BPF_64_64 := 1):
                 raise NotImplementedError()

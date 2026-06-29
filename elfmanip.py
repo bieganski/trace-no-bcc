@@ -106,7 +106,7 @@ def find_relevant_relocation_sections(elf_content: bytes, section_name: str) -> 
         target_section_tuple = get_section(elf_content=elf_content, idx=target_section_idx)
         name, header = target_section_tuple
         if name == section_name:
-            yield target_section_tuple
+            yield s
 
 
 def iter_sections(elf_content: bytes) -> Generator[tuple[None | str, Elf64_Shdr], None, None]: # yields (section_name, section_header)
