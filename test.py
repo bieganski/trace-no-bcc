@@ -210,7 +210,7 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
         symtab_nr = s.sh_link
         symtab = elf.get_section(symtab_nr)
         logging.info(f"rel section '{section_name}': corresponding symbol table: '{symtab.name}' ({symtab_nr})")
-        for i, reloc in enumerate(iter_relocations(elf_content=elf_bytes, section_header=s)):
+        for i, reloc in enumerate(iter_relocations(elf_content=elf_bytes, sh=s)):
             if (reloc['r_info_type']) != (R_BPF_64_64 := 1):
                 raise NotImplementedError()
             symbol = symtab.get_symbol(symbol_idx := reloc['r_info_sym'])

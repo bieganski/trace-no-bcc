@@ -65,13 +65,17 @@ class Elf64_Shdr(ctypes.Structure):
         return f"section of size {hex(self.content_length)} at file offset {hex(self.content_file_offset)}"
 
 class Elf64_Rel(ctypes.Structure):
-       ("r_offset", Elf64_Addr),
-       ("r_info", Elf64_Xword),
+    _fields_ = [
+        ("r_offset", Elf64_Addr),
+        ("r_info", Elf64_Xword),
+    ]
 
 class Elf64_Rela(ctypes.Structure):
-       ("r_offset", Elf64_Addr),
-       ("r_info", Elf64_Xword),
-       ("r_addend", Elf64_Sxword)
+    _fields_ = [
+        ("r_offset", Elf64_Addr),
+        ("r_info", Elf64_Xword),
+        ("r_addend", Elf64_Sxword)
+    ]
 
 class ShType(IntEnum):
     SHN_UNDEF =  0
@@ -86,8 +90,20 @@ class ShType(IntEnum):
     SHT_REL =         9
     SHT_DYNSYM =      11
 
-def iter_relocations(elf_content: bytes, section_header: Elf64_Shdr):
-    raise ValueError(ShType(section_header.sh_type))
+def iter_relocations(elf_content: bytes, sh: Elf64_Shdr):
+    if sh.sh_type == ShType.SHT_RELA:
+        raise NotImplementedError()
+    assert sh.sh_type == ShType.SHT_REL
+    data = section_content(elf_content=elf_content, sh=sh)
+    assert sh.sh_entsize == ctypes.sizeof(Elf64_Rel), (sh.sh_entsize, ctypes.sizeof(Elf64_Rel()))
+    entsize = ctypes.sizeof(Elf64_Rel)
+    num_relocs : float = len(data) / entsize
+    assert num_relocs.is_integer()
+    for i in range(num_relocs := int(num_relocs)):
+        yield Elf64_Rel.from_buffer_copy(data[i * entsize:(i + 1) * entsize])
+
+def section_content(elf_content: bytes, sh: Elf64_Shdr):
+    return elf_content[sh.sh_offset:sh.sh_offset+sh.sh_size]
 
 def get_null_terminated_str(data: bytes, first_byte_offset: int) -> str:
     return data[first_byte_offset:].split(b"\0")[0].decode("ascii")
@@ -107,7 +123,6 @@ def find_relevant_relocation_sections(elf_content: bytes, section_name: str) -> 
         name, header = target_section_tuple
         if name == section_name:
             yield s
-
 
 def iter_sections(elf_content: bytes) -> Generator[tuple[None | str, Elf64_Shdr], None, None]: # yields (section_name, section_header)
     stream = BytesIO(elf_content)
