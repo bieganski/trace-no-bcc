@@ -5,6 +5,7 @@ import logging
 import ctypes
 from io import BytesIO
 from typing import Generator
+from enum import IntEnum
 
 logging.basicConfig(level=logging.INFO)
 
@@ -72,12 +73,41 @@ class Elf64_Rela(ctypes.Structure):
        ("r_info", Elf64_Xword),
        ("r_addend", Elf64_Sxword)
 
+class ShType(IntEnum):
+    SHN_UNDEF =  0
+    SHN_ABS =    0xfff1
+    SHN_COMMON = 0xfff2
+    SHT_PROGBITS =    1
+    SHT_SYMTAB =      2
+    SHT_STRTAB =      3
+    SHT_RELA =        4
+    SHT_HASH =        5
+    SHT_DYNAMIC =     6
+    SHT_REL =         9
+    SHT_DYNSYM =      11
 
 def iter_relocations(elf_content: bytes, section_header: Elf64_Shdr):
-    raise ValueError(section_header)
+    raise ValueError(ShType(section_header.sh_type))
 
 def get_null_terminated_str(data: bytes, first_byte_offset: int) -> str:
     return data[first_byte_offset:].split(b"\0")[0].decode("ascii")
+
+def find_all_relocation_sections(elf_content: bytes) -> Generator:
+    for name, header in iter_sections(elf_content=elf_content):
+        # Check if this is a relocation section
+        if header.sh_type not in (ShType.SHT_REL, ShType.SHT_RELA):
+            continue
+        print(name, header.sh_type)
+        yield header
+
+def find_relevant_relocation_sections(elf_content: bytes, section_name: str) -> Generator:
+    for s in find_all_relocation_sections(elf_content=elf_content):
+        target_section_idx = s.sh_info
+        target_section_tuple = get_section(elf_content=elf_content, idx=target_section_idx)
+        name, header = target_section_tuple
+        if name == section_name:
+            yield target_section_tuple
+
 
 def iter_sections(elf_content: bytes) -> Generator[tuple[None | str, Elf64_Shdr], None, None]: # yields (section_name, section_header)
     stream = BytesIO(elf_content)

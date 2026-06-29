@@ -8,7 +8,7 @@ from typing import Type, Generator
 from io import BytesIO
 from pathlib import Path
 
-from elfmanip import find_section_or_raise
+from elfmanip import find_section_or_raise, iter_relocations, find_relevant_relocation_sections
 from blobmanip import op_write_bytes, WriteContext
 
 from elftools.elf.elffile import ELFFile
@@ -135,37 +135,6 @@ def alloc_writable_buf(type: Type[ctypes.Structure]) -> "ctypes._Pointer[ctypes.
     ptr = ctypes.create_string_buffer(init=bytes(size), size=size)
     return ctypes.cast(ptr, ctypes.POINTER(type))
 
-class ShType(IntEnum):
-    SHN_UNDEF =  0
-    SHN_ABS =    0xfff1
-    SHN_COMMON = 0xfff2
-    SHT_PROGBITS =    1
-    SHT_SYMTAB =      2
-    SHT_STRTAB =      3
-    SHT_RELA =        4
-    SHT_HASH =        5
-    SHT_DYNAMIC =     6
-    SHT_REL =         9
-    SHT_DYNSYM =      11
-
-from elfmanip import iter_sections, get_section
-
-def find_all_relocation_sections(elf_content: bytes) -> Generator:
-    for name, header in iter_sections(elf_content=elf_content):
-        # Check if this is a relocation section
-        if header.sh_type not in (ShType.SHT_REL, ShType.SHT_RELA):
-            continue
-        print(name, header.sh_type)
-        yield header
-
-def find_relevant_relocation_sections(elf_content: bytes, section_name: str) -> Generator:
-    for s in find_all_relocation_sections(elf_content=elf_content):
-        target_section_idx = s.sh_info
-        target_section_tuple = get_section(elf_content=elf_content, idx=target_section_idx)
-        name, header = target_section_tuple
-        if name == section_name:
-            yield target_section_tuple
-
 def symbol_name_extract__quirk(elffile: ELFFile, symbol: Symbol) -> str:
     """
     Took from pyelftools/scripts/readelf.py.
@@ -241,7 +210,7 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
         symtab_nr = s.sh_link
         symtab = elf.get_section(symtab_nr)
         logging.info(f"rel section '{s_name}': corresponding symbol table: '{symtab.name}' ({symtab_nr})")
-        for i, reloc in enumerate(s.iter_relocations()):
+        for i, reloc in enumerate(iter_relocations(elf_content=elf_bytes, section_header=s)):
             if (reloc['r_info_type']) != (R_BPF_64_64 := 1):
                 raise NotImplementedError()
             symbol = symtab.get_symbol(symbol_idx := reloc['r_info_sym'])
