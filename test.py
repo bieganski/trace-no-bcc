@@ -8,7 +8,11 @@ from typing import Type, Generator
 from io import BytesIO
 from pathlib import Path
 
-from elfmanip import find_section_or_raise, iter_relocations, find_relevant_relocation_sections
+try:
+    # XXX make IDE happy
+    from .elfmanip import *
+except:
+    from elfmanip import find_section_or_raise, iter_relocations, find_relevant_relocation_sections, section_content
 from blobmanip import op_write_bytes, WriteContext
 
 from elftools.elf.elffile import ELFFile
@@ -166,10 +170,31 @@ def __debug_gdb(data: bytes = b"\xde\xad\xbe\xef\00\x11\x22\x33"):
     time.sleep(9999)
 
 
+# bpf(BPF_MAP_CREATE, {map_type=BPF_MAP_TYPE_RINGBUF, key_size=0, value_size=0, max_entries=262144, map_flags=0, inner_map_fd=0, map_name="rb", map_ifindex=0, btf_fd=10, btf_key_type_id=0, btf_value_type_id=0, btf_vmlinux_value_type_id=0, map_extra=0}, 72) = 11
+# bpf(BPF_MAP_CREATE, {map_type=BPF_MAP_TYPE_RINGBUF, key_size=0, value_size=0, max_entries=1024  , map_flags=0, inner_map_fd=0, map_name="rb", map_ifindex=0, btf_fd=0, btf_key_type_id=0, btf_value_type_id=0, btf_vmlinux_value_type_id=0, map_extra=0}, 80) = -1 EINVAL (Invalid argument)
+
+def bpf_ringbuf_create(max_entries: int, map_name: str) -> int:
+    """
+    returns fd
+    """
+    assert len(map_name) < 16
+    assert (max_entries / 4096).is_integer()
+    assert (max_entries / 4096) > 0
+    attr = bpf_map_create__bpf_attr()
+    attr.map_type = bpf.BPF_MAP_TYPE_RINGBUF
+    attr.key_size = 0
+    attr.value_size = 0
+    attr.max_entries = max_entries
+    attr.map_name = map_name.encode("ascii")
+    fd = syscall_bpf(op=BPF_op.BPF_MAP_CREATE, attr=attr)
+    logging.info(f"BPF map '{map_name}': BPF_MAP_CREATE OK")
+    return fd
+
 def _bpf_map_create_single_elem(size: int, map_name: str) -> int:
     """
     returns fd
     """
+    assert len(map_name) < 16
     attr = bpf_map_create__bpf_attr()
     attr.map_type = bpf.BPF_MAP_TYPE_ARRAY
     attr.key_size = 4
@@ -186,7 +211,7 @@ def bpf_make_single_elem_map(init: bytes, map_name: str) -> int:
     """
     returns fd of newly created BPF map.
     """
-    fd = _bpf_map_create_single_elem(size=len(init), map_name=map_name)
+    fd = _bpf_map_create_single_elem(size=len(init), map_name=map_name[:15])
     attr = bpf_map_update_elem__bpf_attr()
     attr.map_fd = fd
     attr.key = alloc_raw_buffer(data=b"\x00" * 8)
@@ -215,23 +240,30 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
                 raise NotImplementedError()
             symbol = symtab.get_symbol(symbol_idx := reloc.r_info_sym)
             if symbol.name:
-                raise NotImplementedError()
-            if symbol['st_info']['type'] != 'STT_SECTION':
-                raise NotImplementedError()
-            symbol_name = symbol_name_extract__quirk(elffile=elf, symbol=symbol)
+                if symbol.name != "rb":
+                    raise NotImplementedError()
+                if symbol['st_info']['type'] != 'STT_NOTYPE':
+                    raise NotImplementedError()
+                symbol_name = symbol.name
+                fd = bpf_ringbuf_create(max_entries=4096, map_name=symbol_name[:16])
+                # raise ValueError(fd)
+            else:
+                if symbol['st_info']['type'] != 'STT_SECTION':
+                    raise NotImplementedError(symbol['st_info']['type'])
+                symbol_name = symbol_name_extract__quirk(elffile=elf, symbol=symbol)
+
+                if (map_name := f"_map_{symbol_name}") not in bpf_maps:
+                    logging.info(f"creating BPF map for section {symbol_name}..")
+                    section : bytes = elf.get_section_by_name(symbol_name).data()
+                    logging.info(f"section '{symbol_name}' size={len(section)}")
+                    fd = bpf_make_single_elem_map(init=section, map_name=map_name)
+                    logging.info(f"section '{symbol_name}': BPF map '{map_name}' created. For debug use 'sudo bpftool map dump name {map_name}'")
+                    bpf_maps[map_name] = fd
+                else:
+                    logging.debug(f"skipping BPF map creation for section {symbol_name} (reason: already there)")
+                    fd = bpf_maps[map_name]
 
             logging.info(f"processing relocation {i}: offset={reloc.r_offset}, symbol (st_name={symbol['st_name']})='{symbol_name}' (sym_idx={symbol_idx})")
-
-            if (map_name := f"_map_{symbol_name}") not in bpf_maps:
-                logging.info(f"creating BPF map for section {symbol_name}..")
-                section : bytes = elf.get_section_by_name(symbol_name).data()
-                logging.info(f"section '{symbol_name}' size={len(section)}")
-                fd = bpf_make_single_elem_map(init=section, map_name=map_name)
-                logging.info(f"section '{symbol_name}': BPF map '{map_name}' created. For debug use 'sudo bpftool map dump name {map_name}'")
-                bpf_maps[map_name] = fd
-            else:
-                logging.debug(f"skipping BPF map creation for section {symbol_name} (reason: already there)")
-                fd = bpf_maps[map_name]
         
             # all modifications to 'insn' will be reflected in 'to_relocate' value.
             off = reloc.r_offset
@@ -405,11 +437,26 @@ def symbol_offset_and_size(symbol: str, elf_bytes: bytes) -> tuple[int, int]:
     logging.info(f"located symbol '{symbol}' at offset={hex(offset)} and size={hex(size)}")
     return offset, size
 
+def create_ringbuffer_if_exists(elf_bytes: bytes) -> None:
+    try:
+        sec: Elf64_Shdr = find_section_or_raise(elf_content=elf_bytes, sec_name=".maps")
+    except:
+        logging.warning("Could not find section .maps")
+        return
+    content = section_content(elf_content=elf_bytes, sh=sec)
+    # raise ValueError(content)
+
 def main():
     from pathlib import Path
     bpf_elf_bytes = Path("uprobe.bpf.o").read_bytes()
     bpf_elf_bytes = bpf_elf_adjust_to_cpu_arch(elf_bytes=bpf_elf_bytes)
     ebpf_programs = elf_iter_symbols(elf_bytes=bpf_elf_bytes)
+
+    ####
+    create_ringbuffer_if_exists(elf_bytes=bpf_elf_bytes)
+    # raise ValueError("A")
+    ####
+
     logging.info(f"eBPF programs found: {ebpf_programs}") # XXX - offsets from what??
     code : bytes = relocate_section(elf_bytes=bpf_elf_bytes, section_name="uprobe//")
     

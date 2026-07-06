@@ -155,10 +155,11 @@ SEC(".rodata.arch_is_armv7l") static volatile const uint32_t arch_is_armv7l = 1;
 
 char LICENSE[] SEC("license") = "Dual BSD/GPL";
 
-struct {
-	__uint(type, BPF_MAP_TYPE_RINGBUF);
-	__uint(max_entries, 256 * 1024 /* 256 KB */);
-} rb SEC(".maps");
+// bpf(BPF_MAP_CREATE, {map_type=BPF_MAP_TYPE_RINGBUF, key_size=0, value_size=0, max_entries=262144, map_flags=0, inner_map_fd=0, map_name="rb", map_ifindex=0, btf_fd=10, btf_key_type_id=0, btf_value_type_id=0, btf_vmlinux_value_type_id=0, map_extra=0}, 72) = 11
+// struct {
+// 	__uint(type, BPF_MAP_TYPE_RINGBUF);
+// 	__uint(max_entries, 256 * 1024 /* 256 KB */);
+// } rb SEC(".maps");
 
 struct event {
 	char library_path[128];
@@ -207,21 +208,23 @@ __always_inline static void copy_regs(void* regs, struct event* e) {
 	}
 }
 
+extern void* rb;
+
 SEC("uprobe//")
 int uprobe_funcname(void* ctx)
 {
-	struct event *e = bpf_ringbuf_reserve(&rb, sizeof(*e), 0);
-	if (!e)
-		return 0;
+	struct event *e = bpf_ringbuf_reserve(rb, sizeof(*e), 0);
+	// if (!e)
+	// 	return 0;
 
-	e->is_ret = 0;
-	e->timestamp = bpf_ktime_get_ns();
-	bpf_probe_read_kernel_str(e->library_path, 128, library_path);
-	bpf_probe_read_kernel_str(e->symbol_name, 64, symbol_name);
-	copy_pid_tid(e);
-	copy_regs(ctx, e);
+	// e->is_ret = 0;
+	// e->timestamp = bpf_ktime_get_ns();
+	// bpf_probe_read_kernel_str(e->library_path, 128, library_path);
+	// bpf_probe_read_kernel_str(e->symbol_name, 64, symbol_name);
+	// copy_pid_tid(e);
+	// copy_regs(ctx, e);
 
-	bpf_ringbuf_submit(e, 0);
+	// bpf_ringbuf_submit(e, 0);
 
 	return 0;
 }
@@ -229,18 +232,18 @@ int uprobe_funcname(void* ctx)
 SEC("uprobe//")
 int ret_uprobe_funcname(void* ctx)
 {
-	struct event *e = bpf_ringbuf_reserve(&rb, sizeof(*e), 0);
-	if (!e)
-		return 0;
+	struct event *e = bpf_ringbuf_reserve(rb, sizeof(*e), 0);
+	// if (!e)
+	// 	return 0;
 
-	e->is_ret = 1;
-	e->timestamp = bpf_ktime_get_ns();
-	bpf_probe_read_kernel_str(e->library_path, 128, library_path);
-	bpf_probe_read_kernel_str(e->symbol_name, 64, symbol_name);
-	copy_pid_tid(e);
-	copy_regs(ctx, e);
+	// e->is_ret = 1;
+	// e->timestamp = bpf_ktime_get_ns();
+	// bpf_probe_read_kernel_str(e->library_path, 128, library_path);
+	// bpf_probe_read_kernel_str(e->symbol_name, 64, symbol_name);
+	// copy_pid_tid(e);
+	// copy_regs(ctx, e);
 
-	bpf_ringbuf_submit(e, 0);
+	// bpf_ringbuf_submit(e, 0);
 
 	return 0;
 }
