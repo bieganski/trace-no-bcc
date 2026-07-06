@@ -70,6 +70,14 @@ class Elf64_Rel(ctypes.Structure):
         ("r_info", Elf64_Xword),
     ]
 
+    @property
+    def r_info_type(self):
+        return self.r_info & 0xff
+
+    @property
+    def r_info_sym(self):
+        return self.r_info >> 32
+
 class Elf64_Rela(ctypes.Structure):
     _fields_ = [
         ("r_offset", Elf64_Addr),

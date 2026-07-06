@@ -211,16 +211,16 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
         symtab = elf.get_section(symtab_nr)
         logging.info(f"rel section '{section_name}': corresponding symbol table: '{symtab.name}' ({symtab_nr})")
         for i, reloc in enumerate(iter_relocations(elf_content=elf_bytes, sh=s)):
-            if (reloc['r_info_type']) != (R_BPF_64_64 := 1):
+            if (reloc.r_info_type) != (R_BPF_64_64 := 1):
                 raise NotImplementedError()
-            symbol = symtab.get_symbol(symbol_idx := reloc['r_info_sym'])
+            symbol = symtab.get_symbol(symbol_idx := reloc.r_info_sym)
             if symbol.name:
                 raise NotImplementedError()
             if symbol['st_info']['type'] != 'STT_SECTION':
                 raise NotImplementedError()
             symbol_name = symbol_name_extract__quirk(elffile=elf, symbol=symbol)
 
-            logging.info(f"processing relocation {i}: offset={reloc['r_offset']}, symbol (st_name={symbol['st_name']})='{symbol_name}' (sym_idx={symbol_idx})")
+            logging.info(f"processing relocation {i}: offset={reloc.r_offset}, symbol (st_name={symbol['st_name']})='{symbol_name}' (sym_idx={symbol_idx})")
 
             if (map_name := f"_map_{symbol_name}") not in bpf_maps:
                 logging.info(f"creating BPF map for section {symbol_name}..")
@@ -234,7 +234,7 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
                 fd = bpf_maps[map_name]
         
             # all modifications to 'insn' will be reflected in 'to_relocate' value.
-            off = reloc['r_offset']
+            off = reloc.r_offset
             orig_insn = to_relocate[off:off + 8]
             insn = memoryview(to_relocate)[off:off + 8]
             insn = bpf.struct_bpf_insn.from_buffer(insn)
@@ -335,7 +335,7 @@ def bpf_link_create(prog_fd: int, perf_event_fd: int) -> int:
 
 
 def uprobe_perf_event_open(elf: Path, offset: int, is_retprobe: bool) -> int:
-    logging.info(f"uprobe_perf_event_open: {elf}:{offset}, retprobe={is_retprobe}")
+    logging.info(f"uprobe_perf_event_open: {elf}:{hex(offset)}, retprobe={is_retprobe}")
     attr = struct_perf_event_attr()
     attr.type = (UPROBE_EVENT_TYPE := 0x9)
     attr.size = ctypes.sizeof(struct_perf_event_attr)
