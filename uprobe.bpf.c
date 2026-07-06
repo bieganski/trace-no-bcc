@@ -210,14 +210,37 @@ __always_inline static void copy_regs(void* regs, struct event* e) {
 SEC("uprobe//")
 int uprobe_funcname(void* ctx)
 {
-	bpf_printk("dupa");
+	struct event *e = bpf_ringbuf_reserve(&rb, sizeof(*e), 0);
+	if (!e)
+		return 0;
+
+	e->is_ret = 0;
+	e->timestamp = bpf_ktime_get_ns();
+	bpf_probe_read_kernel_str(e->library_path, 128, library_path);
+	bpf_probe_read_kernel_str(e->symbol_name, 64, symbol_name);
+	copy_pid_tid(e);
+	copy_regs(ctx, e);
+
+	bpf_ringbuf_submit(e, 0);
+
 	return 0;
 }
 
 SEC("uprobe//")
 int ret_uprobe_funcname(void* ctx)
 {
-	bpf_printk("blada");
+	struct event *e = bpf_ringbuf_reserve(&rb, sizeof(*e), 0);
+	if (!e)
+		return 0;
+
+	e->is_ret = 1;
+	e->timestamp = bpf_ktime_get_ns();
+	bpf_probe_read_kernel_str(e->library_path, 128, library_path);
+	bpf_probe_read_kernel_str(e->symbol_name, 64, symbol_name);
+	copy_pid_tid(e);
+	copy_regs(ctx, e);
+
+	bpf_ringbuf_submit(e, 0);
 
 	return 0;
 }
