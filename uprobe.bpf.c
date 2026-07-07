@@ -202,14 +202,14 @@ __always_inline static void copy_regs(void* regs, struct event* e) {
 	}
 }
 
-extern void rb;
+// extern void rb;
 
 
 // bpf(BPF_MAP_CREATE, {map_type=BPF_MAP_TYPE_RINGBUF, key_size=0, value_size=0, max_entries=262144, map_flags=0, inner_map_fd=0, map_name="rb", map_ifindex=0, btf_fd=10, btf_key_type_id=0, btf_value_type_id=0, btf_vmlinux_value_type_id=0, map_extra=0}, 72) = 11
-// struct {
-// 	__uint(type, BPF_MAP_TYPE_RINGBUF);
-// 	__uint(max_entries, 256 * 1024 /* 256 KB */);
-// } rb SEC(".maps");
+struct {
+	__uint(type, BPF_MAP_TYPE_RINGBUF);
+	__uint(max_entries, 256 * 1024 /* 256 KB */);
+} rb SEC(".maps");
 
 
 SEC("uprobe//")

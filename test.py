@@ -242,8 +242,8 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
             if symbol.name:
                 if symbol.name != "rb":
                     raise NotImplementedError()
-                if symbol['st_info']['type'] != 'STT_NOTYPE':
-                    raise NotImplementedError()
+                # if symbol['st_info']['type'] != 'STT_NOTYPE':
+                #     raise NotImplementedError()
                 symbol_name = symbol.name
                 map_name = symbol_name[:16]
                 if bpf_maps.get(map_name) is None:
