@@ -245,8 +245,12 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
                 if symbol['st_info']['type'] != 'STT_NOTYPE':
                     raise NotImplementedError()
                 symbol_name = symbol.name
-                fd = bpf_ringbuf_create(max_entries=4096, map_name=symbol_name[:16])
-                # raise ValueError(fd)
+                map_name = symbol_name[:16]
+                if bpf_maps.get(map_name) is None:
+                    fd = bpf_ringbuf_create(max_entries=256 * 1024, map_name=map_name)
+                    bpf_maps[map_name] = fd
+                else:
+                    fd = bpf_maps[map_name]
             else:
                 if symbol['st_info']['type'] != 'STT_SECTION':
                     raise NotImplementedError(symbol['st_info']['type'])

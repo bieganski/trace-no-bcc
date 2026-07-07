@@ -155,12 +155,6 @@ SEC(".rodata.arch_is_armv7l") static volatile const uint32_t arch_is_armv7l = 1;
 
 char LICENSE[] SEC("license") = "Dual BSD/GPL";
 
-// bpf(BPF_MAP_CREATE, {map_type=BPF_MAP_TYPE_RINGBUF, key_size=0, value_size=0, max_entries=262144, map_flags=0, inner_map_fd=0, map_name="rb", map_ifindex=0, btf_fd=10, btf_key_type_id=0, btf_value_type_id=0, btf_vmlinux_value_type_id=0, map_extra=0}, 72) = 11
-// struct {
-// 	__uint(type, BPF_MAP_TYPE_RINGBUF);
-// 	__uint(max_entries, 256 * 1024 /* 256 KB */);
-// } rb SEC(".maps");
-
 struct event {
 	char library_path[128];
 	char symbol_name[64];
@@ -208,14 +202,22 @@ __always_inline static void copy_regs(void* regs, struct event* e) {
 	}
 }
 
-extern void* rb;
+extern void rb;
+
+
+// bpf(BPF_MAP_CREATE, {map_type=BPF_MAP_TYPE_RINGBUF, key_size=0, value_size=0, max_entries=262144, map_flags=0, inner_map_fd=0, map_name="rb", map_ifindex=0, btf_fd=10, btf_key_type_id=0, btf_value_type_id=0, btf_vmlinux_value_type_id=0, map_extra=0}, 72) = 11
+// struct {
+// 	__uint(type, BPF_MAP_TYPE_RINGBUF);
+// 	__uint(max_entries, 256 * 1024 /* 256 KB */);
+// } rb SEC(".maps");
+
 
 SEC("uprobe//")
 int uprobe_funcname(void* ctx)
 {
-	struct event *e = bpf_ringbuf_reserve(rb, sizeof(*e), 0);
-	// if (!e)
-	// 	return 0;
+	struct event *e = bpf_ringbuf_reserve(&rb, sizeof(*e), 0);
+	if (!e)
+		return 0;
 
 	// e->is_ret = 0;
 	// e->timestamp = bpf_ktime_get_ns();
@@ -224,7 +226,7 @@ int uprobe_funcname(void* ctx)
 	// copy_pid_tid(e);
 	// copy_regs(ctx, e);
 
-	// bpf_ringbuf_submit(e, 0);
+	bpf_ringbuf_submit(e, 0);
 
 	return 0;
 }
@@ -232,9 +234,9 @@ int uprobe_funcname(void* ctx)
 SEC("uprobe//")
 int ret_uprobe_funcname(void* ctx)
 {
-	struct event *e = bpf_ringbuf_reserve(rb, sizeof(*e), 0);
-	// if (!e)
-	// 	return 0;
+	struct event *e = bpf_ringbuf_reserve(&rb, sizeof(*e), 0);
+	if (!e)
+		return 0;
 
 	// e->is_ret = 1;
 	// e->timestamp = bpf_ktime_get_ns();
@@ -243,7 +245,7 @@ int ret_uprobe_funcname(void* ctx)
 	// copy_pid_tid(e);
 	// copy_regs(ctx, e);
 
-	// bpf_ringbuf_submit(e, 0);
+	bpf_ringbuf_submit(e, 0);
 
 	return 0;
 }
