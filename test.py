@@ -130,6 +130,8 @@ def syscall_bpf(op: BPF_op, attr: ctypes.Union):
     logging.info(f"bpf(op={op.name}, attr={hex(attr_addr)}, size={attr_size})")
     logging.debug(f"attr_addr={hex(attr_addr)}")
     res = syscall(ctypes.c_int(sys_bpf), ctypes.c_int(op), ctypes.c_ulong(attr_addr), ctypes.c_int(attr_size))
+    if res < 0:
+        raise ValueError(ctypes.cast(attr.log_buf, ctypes.c_char_p).value)
     syscall_bpf_check_result_for_error(op=op, res=res)
     return res
 
@@ -282,7 +284,10 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
             # actually rewrite.
             imm64_insn.imm = insn.imm
             insn.imm = fd
-            insn.src_reg = bpf.BPF_PSEUDO_MAP_VALUE
+            if map_name != "rb":
+                insn.src_reg = bpf.BPF_PSEUDO_MAP_VALUE
+            else:
+                insn.src_reg = bpf.BPF_PSEUDO_MAP_FD
 
             logging.info(f"rewritten insn {orig_insn.hex()} into {bytes(insn).hex()}. following imm64={bytes(imm64).hex()}")
     return bytes(to_relocate)
@@ -312,9 +317,10 @@ def bpf_prog_load(code: bytes, prog_name: str):
     # license_ptr = ctypes.cast(buf, ctypes.POINTER(ctypes.c_ulong))
     # license_ptr_as_ulong = ctypes.cast(buf, ctypes.POINTER(ctypes.c_ulong))
     attr.license = ctypes.cast(buf, ctypes.c_char_p) # ctypes.cast(license_ptr, ctypes.c_void_p) # license_ptr_as_ulong
-    attr.log_level = 0
-    attr.log_size = 0
-    attr.log_buf = 0 # or ctypes.POINTER(ctypes.c_char)()?
+    attr.log_level = 11
+    attr.log_size = 9999
+    attr.log_buf = ctypes.cast(ctypes.create_string_buffer(10000), ctypes.c_void_p).value
+    # raise ValueError(hex(attr.log_buf))
     KERNEL_VERSION = lambda a, b, c: (((a) << 16) + ((b) << 8) + (c))
     attr.kern_version = KERNEL_VERSION(6, 17, 0)
     attr.prog_flags = 0
@@ -452,7 +458,7 @@ def create_ringbuffer_if_exists(elf_bytes: bytes) -> None:
 
 def main():
     from pathlib import Path
-    bpf_elf_bytes = Path("uprobe.bpf.o").read_bytes()
+    bpf_elf_bytes = (Path(__file__).parent / "uprobe.bpf.o").read_bytes()
     bpf_elf_bytes = bpf_elf_adjust_to_cpu_arch(elf_bytes=bpf_elf_bytes)
     ebpf_programs = elf_iter_symbols(elf_bytes=bpf_elf_bytes)
 

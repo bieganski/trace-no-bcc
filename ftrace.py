@@ -620,7 +620,7 @@ if __name__ == "__main__":
         subparser.add_argument("-t", "--timeout_ms", type=int, default=1, help="ringbuf polling timeout. 'good' value depends on number of symbols traced.")
         subparser.add_argument("-l", "--limit", type=int, default=0, help="exit after handling N events. Default 0 means infinite.")
         subparser.add_argument("-ts", "--timestamp", action="store_true")
-        subparser.add_argument("-e", "--bpf-elf", type=Path, default=Path("uprobe.bpf.o"))
+        subparser.add_argument("-e", "--bpf-elf", type=Path, default=Path(__file__).parent / "uprobe.bpf.o")
         subparser.add_argument("-nr", "--no-retprobe", action="store_true")
         subparser.add_argument("-m", "--minimal", action="store_true", help="skip event processing, invoke minimal handler, that just prints a line to stdout.")
         subparser.add_argument("-f", "--adjust-fileno", action="store_true", help="might be needed when tracing hundreds or more symbols at once.")

@@ -31,7 +31,7 @@ def asstrace_bpf(op, ptr, *_):
     attr = bpf_prog_load__bpf_attr.from_buffer_copy(mem)
     insn = ctypes.c_uint64.from_buffer_copy(mem[8:16]).value
     if attr.prog_type == bpf.BPF_PROG_TYPE_KPROBE and b"uprobe_funcname" in attr.prog_name:
-        # raise ValueError(attr.insns)
+        # raise ValueError(attr.insn_cnt)
         instructions = API.ptrace_read_mem(address=insn, size=8 * attr.insn_cnt)
         # raise ValueError(memx)
         # instructions = API.ptrace_read_mem(address=attr.insns, size=8 * attr.insn_cnt) 
