@@ -473,7 +473,7 @@ def main():
     del bpf_maps
     
     traced_elf_path = Path("/lib/x86_64-linux-gnu/libc.so.6")
-    traced_symbol = "clock_nanosleep"
+    traced_symbol = "malloc"
     traced_symbol_offset = symbol_offset_and_size(elf_bytes=traced_elf_path.read_bytes(), symbol=traced_symbol)[0]
     for prog_name, (offset, size) in ebpf_programs.items():
         prog_code = code[offset:offset + size]
@@ -489,12 +489,22 @@ def main():
     print("$    sudo cat /sys/kernel/debug/tracing/trace_pipe")
     
     epoll_fd = create_epoll_event(rb_fd=rb_map_fd)
-    epoll_event_placeholder = struct_epoll_event()
+    ev = struct_epoll_event()
     num_events, timeout_ms = 1, -1
     while True:
         # epoll_wait(16<anon_inode:[eventpoll]>, [], 1, 1) = 0
         # epoll_wait(0x10, 0x60035218e0e0, 0x1, 0x1) = 0
-        res = libc.epoll_wait(epoll_fd, ctypes.byref(epoll_event_placeholder), num_events, timeout_ms)
+        match libc.epoll_wait(epoll_fd, ctypes.byref(ev), num_events, timeout_ms):
+            case 1:
+                assert ev.events == (EPOLLIN := 0x1)
+                d = ev.data
+                import os
+                while buf := os.read(d.fd, 1024):
+                    print(buf)
+            case 0:
+                assert False
+            case -1:
+                raise RuntimeError(f"epoll_wait: {errno()}")
         # raise ValueError(res)
         time.sleep(111)
 
