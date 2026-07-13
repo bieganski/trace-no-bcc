@@ -456,6 +456,7 @@ def create_epoll_event(rb_fd: int) -> int:
     # epoll_ctl(16<anon_inode:[eventpoll]>, EPOLL_CTL_ADD, 3<anon_inode:bpf-map>, {events=EPOLLIN, data={u32=0, u64=0}}) = 0
     # epoll_ctl(0x10, 0x1, 0x3, 0x626ee9b720e0) = 0
     epoll_event = struct_epoll_event()
+    epoll_event.events = (EPOLLIN := 0x1)
     if libc.epoll_ctl(epoll_fd, EPOLL_CTL_ADD := 0x1, rb_fd, ctypes.byref(epoll_event)) != 0:
         raise RuntimeError(f"epoll_ctl: {errno()}")
     return epoll_fd
@@ -489,13 +490,12 @@ def main():
     
     epoll_fd = create_epoll_event(rb_fd=rb_map_fd)
     epoll_event_placeholder = struct_epoll_event()
-    
+    num_events, timeout_ms = 1, -1
     while True:
-        num_events, timeout_ms = 1, -1
         # epoll_wait(16<anon_inode:[eventpoll]>, [], 1, 1) = 0
         # epoll_wait(0x10, 0x60035218e0e0, 0x1, 0x1) = 0
         res = libc.epoll_wait(epoll_fd, ctypes.byref(epoll_event_placeholder), num_events, timeout_ms)
-        raise ValueError(res)
+        # raise ValueError(res)
         time.sleep(111)
 
 if __name__ == "__main__":
