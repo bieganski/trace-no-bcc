@@ -130,8 +130,8 @@ def syscall_bpf(op: BPF_op, attr: ctypes.Union):
     logging.info(f"bpf(op={op.name}, attr={hex(attr_addr)}, size={attr_size})")
     logging.debug(f"attr_addr={hex(attr_addr)}")
     res = syscall(ctypes.c_int(sys_bpf), ctypes.c_int(op), ctypes.c_ulong(attr_addr), ctypes.c_int(attr_size))
-    if res < 0:
-        raise ValueError(ctypes.cast(attr.log_buf, ctypes.c_char_p).value)
+    # if res < 0:
+    #     raise ValueError(ctypes.cast(attr.log_buf, ctypes.c_char_p).value)
     syscall_bpf_check_result_for_error(op=op, res=res)
     return res
 
@@ -447,25 +447,11 @@ def symbol_offset_and_size(symbol: str, elf_bytes: bytes) -> tuple[int, int]:
     logging.info(f"located symbol '{symbol}' at offset={hex(offset)} and size={hex(size)}")
     return offset, size
 
-def create_ringbuffer_if_exists(elf_bytes: bytes) -> None:
-    try:
-        sec: Elf64_Shdr = find_section_or_raise(elf_content=elf_bytes, sec_name=".maps")
-    except:
-        logging.warning("Could not find section .maps")
-        return
-    content = section_content(elf_content=elf_bytes, sh=sec)
-    # raise ValueError(content)
-
 def main():
     from pathlib import Path
     bpf_elf_bytes = (Path(__file__).parent / "uprobe.bpf.o").read_bytes()
     bpf_elf_bytes = bpf_elf_adjust_to_cpu_arch(elf_bytes=bpf_elf_bytes)
     ebpf_programs = elf_iter_symbols(elf_bytes=bpf_elf_bytes)
-
-    ####
-    create_ringbuffer_if_exists(elf_bytes=bpf_elf_bytes)
-    # raise ValueError("A")
-    ####
 
     logging.info(f"eBPF programs found: {ebpf_programs}") # XXX - offsets from what??
     code : bytes = relocate_section(elf_bytes=bpf_elf_bytes, section_name="uprobe//")
@@ -487,7 +473,6 @@ def main():
     print("$    sudo cat /sys/kernel/debug/tracing/trace_pipe")
     import time
     time.sleep(9999)
-
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
