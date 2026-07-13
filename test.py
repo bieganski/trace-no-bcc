@@ -7,6 +7,7 @@ import logging
 from typing import Type, Generator
 from io import BytesIO
 from pathlib import Path
+import time
 
 try:
     # XXX make IDE happy
@@ -18,7 +19,7 @@ from blobmanip import op_write_bytes, WriteContext
 from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import Symbol
 
-from gen.libbpf import struct_perf_event_attr
+from gen.libbpf import struct_perf_event_attr, struct_epoll_event
 import gen.bpf as bpf
 
 from inspect import getmembers
@@ -223,7 +224,7 @@ def bpf_make_single_elem_map(init: bytes, map_name: str) -> int:
     logging.info(f"BPF map '{map_name}': BPF_MAP_UPDATE_ELEM OK")
     return fd
 
-def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
+def relocate_section(elf_bytes: bytes, section_name: str) -> tuple[bytes, dict]:
     elf = ELFFile(BytesIO(elf_bytes))
     to_relocate = bytearray(elf.get_section_by_name(section_name).data())
     logging.info(f"relocating section '{section_name}' ({len(to_relocate)} bytes)..")
@@ -290,7 +291,7 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> bytes:
                 insn.src_reg = bpf.BPF_PSEUDO_MAP_FD
 
             logging.info(f"rewritten insn {orig_insn.hex()} into {bytes(insn).hex()}. following imm64={bytes(imm64).hex()}")
-    return bytes(to_relocate)
+    return bytes(to_relocate), bpf_maps
 
 def float2int_safe(val: float) -> int:
     assert val.is_integer()
@@ -447,6 +448,18 @@ def symbol_offset_and_size(symbol: str, elf_bytes: bytes) -> tuple[int, int]:
     logging.info(f"located symbol '{symbol}' at offset={hex(offset)} and size={hex(size)}")
     return offset, size
 
+def create_epoll_event(rb_fd: int) -> int:
+    epoll_fd = libc.epoll_create1(EPOLL_CLOEXEC := 0x80000)
+    if epoll_fd < 0:
+        raise RuntimeError(f"epoll_create1: {errno()}")
+    # strace libbpf:
+    # epoll_ctl(16<anon_inode:[eventpoll]>, EPOLL_CTL_ADD, 3<anon_inode:bpf-map>, {events=EPOLLIN, data={u32=0, u64=0}}) = 0
+    # epoll_ctl(0x10, 0x1, 0x3, 0x626ee9b720e0) = 0
+    epoll_event = struct_epoll_event()
+    if libc.epoll_ctl(epoll_fd, EPOLL_CTL_ADD := 0x1, rb_fd, ctypes.byref(epoll_event)) != 0:
+        raise RuntimeError(f"epoll_ctl: {errno()}")
+    return epoll_fd
+
 def main():
     from pathlib import Path
     bpf_elf_bytes = (Path(__file__).parent / "uprobe.bpf.o").read_bytes()
@@ -454,7 +467,9 @@ def main():
     ebpf_programs = elf_iter_symbols(elf_bytes=bpf_elf_bytes)
 
     logging.info(f"eBPF programs found: {ebpf_programs}") # XXX - offsets from what??
-    code : bytes = relocate_section(elf_bytes=bpf_elf_bytes, section_name="uprobe//")
+    code, bpf_maps = relocate_section(elf_bytes=bpf_elf_bytes, section_name="uprobe//")
+    assert (rb_map_fd := bpf_maps.get("rb")) is not None
+    del bpf_maps
     
     traced_elf_path = Path("/lib/x86_64-linux-gnu/libc.so.6")
     traced_symbol = "clock_nanosleep"
@@ -471,8 +486,17 @@ def main():
 
     print("$    sudo bpftool prog show")
     print("$    sudo cat /sys/kernel/debug/tracing/trace_pipe")
-    import time
-    time.sleep(9999)
+    
+    epoll_fd = create_epoll_event(rb_fd=rb_map_fd)
+    epoll_event_placeholder = struct_epoll_event()
+    
+    while True:
+        num_events, timeout_ms = 1, -1
+        # epoll_wait(16<anon_inode:[eventpoll]>, [], 1, 1) = 0
+        # epoll_wait(0x10, 0x60035218e0e0, 0x1, 0x1) = 0
+        res = libc.epoll_wait(epoll_fd, ctypes.byref(epoll_event_placeholder), num_events, timeout_ms)
+        raise ValueError(res)
+        time.sleep(111)
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
