@@ -491,16 +491,20 @@ def main():
     epoll_fd = create_epoll_event(rb_fd=rb_map_fd)
     ev = struct_epoll_event()
     num_events, timeout_ms = 1, -1
+
+    mmap_1st_page_ptr = libc.mmap((_addr := 0x0), (_length := 4096), (PROT_READ := 0x1) | (PROT_WRITE := 0x2), (MAP_SHARED := 0x1), rb_map_fd, (_offset := 0))
+    assert mmap_1st_page_ptr > 0
+    ctypes.c_uint64.from_address(mmap_1st_page_ptr).value = 0x2000
+
     while True:
         # epoll_wait(16<anon_inode:[eventpoll]>, [], 1, 1) = 0
         # epoll_wait(0x10, 0x60035218e0e0, 0x1, 0x1) = 0
         match libc.epoll_wait(epoll_fd, ctypes.byref(ev), num_events, timeout_ms):
             case 1:
                 assert ev.events == (EPOLLIN := 0x1)
-                d = ev.data
-                import os
-                while buf := os.read(d.fd, 1024):
-                    print(buf)
+                import time
+                time.sleep(10)
+                raise ValueError("OK")
             case 0:
                 assert False
             case -1:
