@@ -132,8 +132,10 @@ def syscall_bpf(op: BPF_op, attr: ctypes.Union):
     logging.info(f"bpf(op={op.name}, attr={hex(attr_addr)}, size={attr_size})")
     logging.debug(f"attr_addr={hex(attr_addr)}")
     res = syscall(ctypes.c_int(sys_bpf), ctypes.c_int(op), ctypes.c_ulong(attr_addr), ctypes.c_int(attr_size))
-    # if res < 0:
-    #     raise ValueError(ctypes.cast(attr.log_buf, ctypes.c_char_p).value)
+    if res < 0:
+        if hasattr(attr, "log_buf"):
+            verifier_err_msg_bytes = ctypes.cast(attr.log_buf, ctypes.c_char_p).value
+            raise RuntimeError("\n".join(str(verifier_err_msg_bytes).split(";")))
     syscall_bpf_check_result_for_error(op=op, res=res)
     return res
 
@@ -271,7 +273,7 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> tuple[bytes, dict]:
                     logging.debug(f"skipping BPF map creation for section {symbol_name} (reason: already there)")
                     fd = bpf_maps[map_name]
 
-            logging.info(f"processing relocation {i}: offset={reloc.r_offset}, symbol (st_name={symbol['st_name']})='{symbol_name}' (sym_idx={symbol_idx})")
+            logging.info(f"processing relocation {i}: offset={reloc.r_offset} (= 8 * {reloc.r_offset // 8}), symbol (st_name={symbol['st_name']})='{symbol_name}' (sym_idx={symbol_idx})")
         
             # all modifications to 'insn' will be reflected in 'to_relocate' value.
             off = reloc.r_offset
@@ -320,7 +322,7 @@ def bpf_prog_load(code: bytes, prog_name: str):
     # license_ptr_as_ulong = ctypes.cast(buf, ctypes.POINTER(ctypes.c_ulong))
     attr.license = ctypes.cast(buf, ctypes.c_char_p) # ctypes.cast(license_ptr, ctypes.c_void_p) # license_ptr_as_ulong
     attr.log_level = 11
-    attr.log_size = 50000
+    attr.log_size = 10000
     attr.log_buf = ctypes.cast(ctypes.create_string_buffer(10000), ctypes.c_void_p).value
     # raise ValueError(hex(attr.log_buf))
     KERNEL_VERSION = lambda a, b, c: (((a) << 16) + ((b) << 8) + (c))
