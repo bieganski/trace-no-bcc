@@ -218,12 +218,17 @@ int uprobe_funcname(void* ctx)
 	struct event *e = bpf_ringbuf_reserve(&rb, sizeof(*e), 0);
 	if (!e)
 		return 0;
+	
+	e->library_path[0] = 0xbb;
+	e->library_path[1] = 0xbb;
+	e->library_path[2] = 0xbb;
+	e->library_path[3] = 0xbb;
 
-	// e->is_ret = 0;
-	// e->timestamp = bpf_ktime_get_ns();
-	// bpf_probe_read_kernel_str(e->library_path, 128, library_path);
-	// bpf_probe_read_kernel_str(e->symbol_name, 64, symbol_name);
-	// copy_pid_tid(e);
+	e->is_ret = 0;
+	e->timestamp = bpf_ktime_get_ns();
+	bpf_probe_read_kernel_str(e->library_path, 128, library_path);
+	bpf_probe_read_kernel_str(e->symbol_name, 64, symbol_name);
+	copy_pid_tid(e);
 	// copy_regs(ctx, e);
 
 	bpf_ringbuf_submit(e, 0);
@@ -237,12 +242,16 @@ int ret_uprobe_funcname(void* ctx)
 	struct event *e = bpf_ringbuf_reserve(&rb, sizeof(*e), 0);
 	if (!e)
 		return 0;
+	e->library_path[0] = 0xaa;
+	e->library_path[1] = 0xaa;
+	e->library_path[2] = 0xaa;
+	e->library_path[3] = 0xaa;
 
-	// e->is_ret = 1;
-	// e->timestamp = bpf_ktime_get_ns();
-	// bpf_probe_read_kernel_str(e->library_path, 128, library_path);
-	// bpf_probe_read_kernel_str(e->symbol_name, 64, symbol_name);
-	// copy_pid_tid(e);
+	e->is_ret = 1;
+	e->timestamp = bpf_ktime_get_ns();
+	bpf_probe_read_kernel_str(e->library_path, 128, library_path);
+	bpf_probe_read_kernel_str(e->symbol_name, 64, symbol_name);
+	copy_pid_tid(e);
 	// copy_regs(ctx, e);
 
 	bpf_ringbuf_submit(e, 0);

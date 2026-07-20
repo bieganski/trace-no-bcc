@@ -37,6 +37,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 libc = ctypes.CDLL(None)
 syscall = libc.syscall
+libc.mmap.restype = ctypes.c_void_p
 
 class CPU_Arch(Enum):
     x86_64 = "x86_64"
@@ -319,7 +320,7 @@ def bpf_prog_load(code: bytes, prog_name: str):
     # license_ptr_as_ulong = ctypes.cast(buf, ctypes.POINTER(ctypes.c_ulong))
     attr.license = ctypes.cast(buf, ctypes.c_char_p) # ctypes.cast(license_ptr, ctypes.c_void_p) # license_ptr_as_ulong
     attr.log_level = 11
-    attr.log_size = 9999
+    attr.log_size = 50000
     attr.log_buf = ctypes.cast(ctypes.create_string_buffer(10000), ctypes.c_void_p).value
     # raise ValueError(hex(attr.log_buf))
     KERNEL_VERSION = lambda a, b, c: (((a) << 16) + ((b) << 8) + (c))
@@ -461,6 +462,139 @@ def create_epoll_event(rb_fd: int) -> int:
         raise RuntimeError(f"epoll_ctl: {errno()}")
     return epoll_fd
 
+# kernel/bpf/ringbuf.c
+class BpfRingbufHdr(ctypes.Structure):
+    _fields_ = [
+        ("len", ctypes.c_uint32),
+        ("pg_off", ctypes.c_uint32),
+    ]
+
+class struct_pt_regs_riscv64(ctypes.Structure):
+    _fields_ = [
+        ('epc', ctypes.c_ulong),
+        ('ra', ctypes.c_ulong),
+        ('sp', ctypes.c_ulong),
+        ('gp', ctypes.c_ulong),
+        ('tp', ctypes.c_ulong),
+        ('t0', ctypes.c_ulong),
+        ('t1', ctypes.c_ulong),
+        ('t2', ctypes.c_ulong),
+        ('s0', ctypes.c_ulong),
+        ('s1', ctypes.c_ulong),
+        ('a0', ctypes.c_ulong),
+        ('a1', ctypes.c_ulong),
+        ('a2', ctypes.c_ulong),
+        ('a3', ctypes.c_ulong),
+        ('a4', ctypes.c_ulong),
+        ('a5', ctypes.c_ulong),
+        ('a6', ctypes.c_ulong),
+        ('a7', ctypes.c_ulong),
+        ('s2', ctypes.c_ulong),
+        ('s3', ctypes.c_ulong),
+        ('s4', ctypes.c_ulong),
+        ('s5', ctypes.c_ulong),
+        ('s6', ctypes.c_ulong),
+        ('s7', ctypes.c_ulong),
+        ('s8', ctypes.c_ulong),
+        ('s9', ctypes.c_ulong),
+        ('s10', ctypes.c_ulong),
+        ('s11', ctypes.c_ulong),
+        ('t3', ctypes.c_ulong),
+        ('t4', ctypes.c_ulong),
+        ('t5', ctypes.c_ulong),
+        ('t6', ctypes.c_ulong),
+        ('status', ctypes.c_ulong),
+        ('badaddr', ctypes.c_ulong),
+        ('cause', ctypes.c_ulong),
+        ('orig_a0', ctypes.c_ulong),
+    ]
+
+class struct_pt_regs_x86_64(ctypes.Structure):
+    _fields_ = [
+        ('r15', ctypes.c_ulong),
+        ('r14', ctypes.c_ulong),
+        ('r13', ctypes.c_ulong),
+        ('r12', ctypes.c_ulong),
+        ('bp', ctypes.c_ulong),
+        ('bx', ctypes.c_ulong),
+        ('r11', ctypes.c_ulong),
+        ('r10', ctypes.c_ulong),
+        ('r9', ctypes.c_ulong),
+        ('r8', ctypes.c_ulong),
+        ('ax', ctypes.c_ulong),
+        ('cx', ctypes.c_ulong),
+        ('dx', ctypes.c_ulong),
+        ('si', ctypes.c_ulong),
+        ('di', ctypes.c_ulong),
+        ('orig_ax', ctypes.c_ulong),
+        ('ip', ctypes.c_ulong),
+        ('cs', ctypes.c_ulong),
+        ('flags', ctypes.c_ulong),
+        ('sp', ctypes.c_ulong),
+        ('ss', ctypes.c_ulong),
+    ]
+
+class struct_pt_regs_armv7l(ctypes.Union):
+    _fields_ = [
+        ("uregs", ctypes.c_uint32 * 18),
+    ]
+
+class union_pt_regs(ctypes.Union):
+    _fields_ = [
+        ("x86_64", struct_pt_regs_x86_64),
+        ("riscv64", struct_pt_regs_riscv64),
+        ("armv7l", struct_pt_regs_armv7l),
+    ]
+
+# Define the struct event in Python
+class Event(ctypes.Structure):
+    _fields_ = [
+        ("library_path", ctypes.c_char * 128),
+        ("symbol_name", ctypes.c_char * 64),
+        ("pid", ctypes.c_int32),
+        ("tid", ctypes.c_int32),
+
+        ("timestamp",   ctypes.c_uint64),
+        ("is_ret",      ctypes.c_int32),
+
+        ("pt_regs_union", union_pt_regs)
+    ]
+
+
+def get_regs_of_interest(arch: CPU_Arch, is_ret: bool) -> list[str]:
+    if arch == CPU_Arch.x86_64:
+        return ["ax"] if is_ret else ["di", "si", "dx", "cx", "r8", "r9", "r10"]
+    elif arch == CPU_Arch.riscv64:
+        return ["a0"] if is_ret else ["ra"] + [f"a{i}" for i in range(7)]
+    elif arch == CPU_Arch.armv7l:
+        return [] # TODO
+    else:
+        assert False
+
+def fmt_regs(reg_names: list[str], pt_regs: ctypes.Structure) -> str:
+    res = ""
+    for i, name in enumerate(reg_names):
+        res += f"{name}={hex(getattr(pt_regs, name))}"
+        if not (last := i == len(reg_names) - 1):
+            res += ", "
+    return res
+
+
+def print_event(event: Event):
+    lib_basename = event.library_path.decode("ascii", errors="ignore").split("/")[-1]
+    symbol_name = event.symbol_name.decode("ascii", errors="ignore")
+
+    arch = system_get_cpu_arch()
+
+    pt_regs = getattr(event.pt_regs_union, system_get_cpu_arch().value)
+
+    msg_prefix =  f"[{event.timestamp}]"
+    msg_prefix += f"[{event.pid},{event.tid}][{lib_basename}:{symbol_name}]"
+
+    regs_str = fmt_regs(reg_names=get_regs_of_interest(arch=arch, is_ret=event.is_ret), pt_regs=pt_regs)
+
+    print(f"{msg_prefix} {regs_str}")
+
 def main():
     from pathlib import Path
     bpf_elf_bytes = (Path(__file__).parent / "uprobe.bpf.o").read_bytes()
@@ -473,7 +607,7 @@ def main():
     del bpf_maps
     
     traced_elf_path = Path("/lib/x86_64-linux-gnu/libc.so.6")
-    traced_symbol = "malloc"
+    traced_symbol = "clock_nanosleep"
     traced_symbol_offset = symbol_offset_and_size(elf_bytes=traced_elf_path.read_bytes(), symbol=traced_symbol)[0]
     for prog_name, (offset, size) in ebpf_programs.items():
         prog_code = code[offset:offset + size]
@@ -489,28 +623,34 @@ def main():
     print("$    sudo cat /sys/kernel/debug/tracing/trace_pipe")
     
     epoll_fd = create_epoll_event(rb_fd=rb_map_fd)
-    ev = struct_epoll_event()
+    epoll_state = struct_epoll_event()
     num_events, timeout_ms = 1, -1
 
     mmap_1st_page_ptr = libc.mmap((_addr := 0x0), (_length := 4096), (PROT_READ := 0x1) | (PROT_WRITE := 0x2), (MAP_SHARED := 0x1), rb_map_fd, (_offset := 0))
-    assert mmap_1st_page_ptr > 0
-    ctypes.c_uint64.from_address(mmap_1st_page_ptr).value = 0x2000
+    assert mmap_1st_page_ptr > 0, mmap_1st_page_ptr
+    assert ctypes.c_uint64.from_address(mmap_1st_page_ptr).value == 0x0
+
+    mmap_2nd_page_ptr = libc.mmap((_addr := 0x0), (_length := 4096 * 2), (PROT_READ := 0x1), (MAP_SHARED := 0x1), rb_map_fd, (_offset := 4096))
+    # raise ValueError((ctypes.c_char * 256).from_address(mmap_2nd_page_ptr + 4096).raw)
 
     while True:
-        # epoll_wait(16<anon_inode:[eventpoll]>, [], 1, 1) = 0
-        # epoll_wait(0x10, 0x60035218e0e0, 0x1, 0x1) = 0
-        match libc.epoll_wait(epoll_fd, ctypes.byref(ev), num_events, timeout_ms):
+        match libc.epoll_wait(epoll_fd, ctypes.byref(epoll_state), num_events, timeout_ms):
             case 1:
-                assert ev.events == (EPOLLIN := 0x1)
-                import time
-                time.sleep(10)
-                raise ValueError("OK")
+                assert epoll_state.events == (EPOLLIN := 0x1)
+                consumer_pos = ctypes.c_uint64.from_address(mmap_1st_page_ptr).value
+                print("consumer_pos=", consumer_pos)
+                time.sleep(2)
+                hdr_addr = mmap_2nd_page_ptr + 4096 + consumer_pos
+                hdr = BpfRingbufHdr.from_address(hdr_addr)
+                assert hdr.len == ctypes.sizeof(Event)
+                new_consumer_pos = consumer_pos + ctypes.sizeof(BpfRingbufHdr) + hdr.len
+                ev = Event.from_address(hdr_addr + ctypes.sizeof(BpfRingbufHdr))
+                print_event(ev)
+                ctypes.c_uint64.from_address(mmap_1st_page_ptr).value = new_consumer_pos
             case 0:
                 assert False
             case -1:
                 raise RuntimeError(f"epoll_wait: {errno()}")
-        # raise ValueError(res)
-        time.sleep(111)
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
