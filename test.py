@@ -250,8 +250,7 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> tuple[bytes, dict]:
                     raise NotImplementedError()
                 # if symbol['st_info']['type'] != 'STT_NOTYPE':
                 #     raise NotImplementedError()
-                symbol_name = symbol.name
-                map_name = symbol_name[:16]
+                map_name = symbol.name[-15:]
                 if bpf_maps.get(map_name) is None:
                     fd = bpf_ringbuf_create(max_entries=256 * 1024, map_name=map_name)
                     bpf_maps[map_name] = fd
@@ -260,20 +259,22 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> tuple[bytes, dict]:
             else:
                 if symbol['st_info']['type'] != 'STT_SECTION':
                     raise NotImplementedError(symbol['st_info']['type'])
-                symbol_name = symbol_name_extract__quirk(elffile=elf, symbol=symbol)
+                __section_name = symbol_name_extract__quirk(elffile=elf, symbol=symbol)
+                map_name = __section_name[-15:]
 
-                if (map_name := f"_map_{symbol_name}") not in bpf_maps:
-                    logging.info(f"creating BPF map for section {symbol_name}..")
-                    section : bytes = elf.get_section_by_name(symbol_name).data()
-                    logging.info(f"section '{symbol_name}' size={len(section)}")
+                if map_name not in bpf_maps:
+                    logging.info(f"creating BPF map for section {__section_name}..")
+                    section : bytes = elf.get_section_by_name(__section_name).data()
+                    logging.info(f"section '{__section_name}' size={len(section)}")
                     fd = bpf_make_single_elem_map(init=section, map_name=map_name)
-                    logging.info(f"section '{symbol_name}': BPF map '{map_name}' created. For debug use 'sudo bpftool map dump name {map_name}'")
+                    logging.info(f"section '{__section_name}': BPF map '{map_name}' created. For debug use 'sudo bpftool map dump name {map_name}'")
                     bpf_maps[map_name] = fd
+                    time.sleep(99999)
                 else:
-                    logging.debug(f"skipping BPF map creation for section {symbol_name} (reason: already there)")
+                    logging.debug(f"skipping BPF map creation for section {__section_name} (reason: already there)")
                     fd = bpf_maps[map_name]
 
-            logging.info(f"processing relocation {i}: offset={reloc.r_offset} (= 8 * {reloc.r_offset // 8}), symbol (st_name={symbol['st_name']})='{symbol_name}' (sym_idx={symbol_idx})")
+            logging.info(f"processing relocation {i}: offset={reloc.r_offset} (= 8 * {reloc.r_offset // 8}), symbol (st_name={symbol['st_name']})='{symbol.name or __section_name}' (sym_idx={symbol_idx})")
         
             # all modifications to 'insn' will be reflected in 'to_relocate' value.
             off = reloc.r_offset
