@@ -407,15 +407,15 @@ def uprobe_perf_event_open(elf: Path, offset: int, is_retprobe: bool) -> int:
 
     assert attr.size == 0x88
     attr.uprobe_path = ctypes_path
-    attr.kprobe_func = ctypes_path
-    attr.kprobe_addr = offset
+    # attr.kprobe_func = ctypes_path
+    # attr.kprobe_addr = offset
     attr.probe_offset = offset
-    attr.config2 = offset
     attr.config = (1 if is_retprobe else 0) << determine_retprobe_bit(uprobe_not_kprobe=True)
     fd = syscall_perf_event_open(attr)
     if fd < 0:
         raise RuntimeError(f"perf_event_open: FAILED: {errno()}")
     return fd
+
 
 def bpf_elf_adjust_to_cpu_arch(elf_bytes: bytes, native_arch : CPU_Arch = system_get_cpu_arch()) -> bytes:
 
@@ -629,7 +629,7 @@ def main(library: str, function: str):
     
     traced_elf_path = Path(library) # Path("/lib/x86_64-linux-gnu/libc.so.6")
     traced_symbol = function # "clock_nanosleep"
-    traced_symbol_offset = symbol_offset_and_size(elf_bytes=traced_elf_path.read_bytes(), symbol=traced_symbol)[0]
+    traced_symbol_offset, _ = symbol_offset_and_size(elf_bytes=traced_elf_path.read_bytes(), symbol=traced_symbol)
     for prog_name, (offset, size) in ebpf_programs.items():
         prog_code = code[offset:offset + size]
         prog_fd = bpf_prog_load(code=prog_code, prog_name=prog_name)
