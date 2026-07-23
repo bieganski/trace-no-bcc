@@ -653,6 +653,8 @@ def main(library: str, function: str):
 
     mmap_2nd_page_ptr = libc.mmap((_addr := 0x0), (_length := 4096  + 2 * RB_SIZE_BYTES), (PROT_READ := 0x1), (MAP_SHARED := 0x1), rb_map_fd, (_offset := 4096))
 
+    cur_timestamp_ns = 0
+
     while True:
         match libc.epoll_wait(epoll_fd, ctypes.byref(epoll_state), num_events, timeout_ms):
             case 1:
@@ -665,6 +667,9 @@ def main(library: str, function: str):
                 assert hdr.len == ctypes.sizeof(Event), hdr.len
                 ev = Event.from_address(hdr_addr + ctypes.sizeof(BpfRingbufHdr))
                 print_event(ev)
+                if not ev.is_ret:
+                    print(f"REENTRY after {(ev.timestamp - cur_timestamp_ns) / 1000000}ms")
+                    cur_timestamp_ns = ev.timestamp
 
                 # let kernel know that we consumed the event, and where it should put a new event.
                 new_consumer_pos = (consumer_pos + ctypes.sizeof(BpfRingbufHdr) + hdr.len)
