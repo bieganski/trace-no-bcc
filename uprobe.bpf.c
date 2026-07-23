@@ -187,15 +187,15 @@ __always_inline static void copy_regs(void* regs, struct event* e) {
 	// 	copied = 1;
 	// } 
 	
-	if (arch_is_riscv64) {
-		e->regs_riscv64 = *(struct pt_regs_riscv64*) regs;
-		copied = 1;
-	} 
-	
-	// if (arch_is_x86_64) {
-	// 	e->regs_x86_64 = *(struct pt_regs_x86_64*) regs;
+	// if (arch_is_riscv64) {
+	// 	e->regs_riscv64 = *(struct pt_regs_riscv64*) regs;
 	// 	copied = 1;
 	// } 
+	
+	if (arch_is_x86_64) {
+		e->regs_x86_64 = *(struct pt_regs_x86_64*) regs;
+		copied = 1;
+	} 
 	
 	if (!copied) {
 		bpf_printk("runtime arch detection failed: No register copy performed!");
@@ -218,17 +218,12 @@ int uprobe_funcname(void* ctx)
 	struct event *e = bpf_ringbuf_reserve(&rb, sizeof(*e), 0);
 	if (!e)
 		return 0;
-	
-	// e->library_path[0] = 0xbb;
-	// e->library_path[1] = 0xbb;
-	// e->library_path[2] = 0xbb;
-	// e->library_path[3] = 0xbb;
 
-	// e->is_ret = 0;
-	// e->timestamp = bpf_ktime_get_ns();
-	// bpf_probe_read_kernel_str(e->library_path, 128, library_path);
-	// bpf_probe_read_kernel_str(e->symbol_name, 64, symbol_name);
-	// copy_pid_tid(e);
+	e->is_ret = 0;
+	e->timestamp = bpf_ktime_get_ns();
+	bpf_probe_read_kernel_str(e->library_path, 128, library_path);
+	bpf_probe_read_kernel_str(e->symbol_name, 64, symbol_name);
+	copy_pid_tid(e);
 	copy_regs(ctx, e);
 
 	bpf_ringbuf_submit(e, 0);
@@ -236,25 +231,21 @@ int uprobe_funcname(void* ctx)
 	return 0;
 }
 
-// SEC("uprobe//")
-// int ret_uprobe_funcname(void* ctx)
-// {
-// 	struct event *e = bpf_ringbuf_reserve(&rb, sizeof(*e), 0);
-// 	if (!e)
-// 		return 0;
-// 	e->library_path[0] = 0xaa;
-// 	e->library_path[1] = 0xaa;
-// 	e->library_path[2] = 0xaa;
-// 	e->library_path[3] = 0xaa;
+SEC("uprobe//")
+int ret_uprobe_funcname(void* ctx)
+{
+	struct event *e = bpf_ringbuf_reserve(&rb, sizeof(*e), 0);
+	if (!e)
+		return 0;
 
-// 	e->is_ret = 1;
-// 	e->timestamp = bpf_ktime_get_ns();
-// 	bpf_probe_read_kernel_str(e->library_path, 128, library_path);
-// 	bpf_probe_read_kernel_str(e->symbol_name, 64, symbol_name);
-// 	copy_pid_tid(e);
-// 	// copy_regs(ctx, e);
+	e->is_ret = 1;
+	e->timestamp = bpf_ktime_get_ns();
+	bpf_probe_read_kernel_str(e->library_path, 128, library_path);
+	bpf_probe_read_kernel_str(e->symbol_name, 64, symbol_name);
+	copy_pid_tid(e);
+	copy_regs(ctx, e);
 
-// 	bpf_ringbuf_submit(e, 0);
+	bpf_ringbuf_submit(e, 0);
 
-// 	return 0;
-// }
+	return 0;
+}

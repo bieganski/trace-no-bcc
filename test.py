@@ -122,6 +122,11 @@ def syscall_bpf_check_result_for_error(op: BPF_op, res: int):
             raise RuntimeError(f"{op.name}: {errno()}")
         else:
             logging.info(f"{op.name} OK")
+    elif op in [bpf.BPF_MAP_FREEZE]:
+        if res != 0:
+            raise RuntimeError(f"{op.name}: {errno()}")
+        else:
+            logging.info(f"{op.name} OK")
     else:
         assert False
 
@@ -135,9 +140,16 @@ def syscall_bpf(op: BPF_op, attr: ctypes.Union):
     if res < 0:
         if hasattr(attr, "log_buf"):
             verifier_err_msg_bytes = ctypes.cast(attr.log_buf, ctypes.c_char_p).value
-            raise RuntimeError("\n".join(str(verifier_err_msg_bytes).split(";")))
+            print(verifier_err_msg_bytes.decode("ascii"))
+            time.sleep(99999)
+            raise RuntimeError("verifier.c rejected bpf program")
     syscall_bpf_check_result_for_error(op=op, res=res)
     return res
+
+def bpf_map_freeze(map_fd: int):
+    attr = bpf_map_update_elem__bpf_attr()
+    attr.map_fd = map_fd
+    return syscall_bpf(op=BPF_op.BPF_MAP_FREEZE, attr=attr)
 
 def alloc_writable_buf(type: Type[ctypes.Structure]) -> "ctypes._Pointer[ctypes.Structure]":
     size = ctypes.sizeof(type)
@@ -227,6 +239,8 @@ def bpf_make_single_elem_map(init: bytes, map_name: str) -> int:
     logging.info(f"BPF map '{map_name}': BPF_MAP_UPDATE_ELEM OK")
     return fd
 
+RB_SIZE_BYTES = 256 * 1024
+
 def relocate_section(elf_bytes: bytes, section_name: str) -> tuple[bytes, dict]:
     elf = ELFFile(BytesIO(elf_bytes))
     to_relocate = bytearray(elf.get_section_by_name(section_name).data())
@@ -252,7 +266,7 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> tuple[bytes, dict]:
                 #     raise NotImplementedError()
                 map_name = symbol.name[-15:]
                 if bpf_maps.get(map_name) is None:
-                    fd = bpf_ringbuf_create(max_entries=256 * 1024, map_name=map_name)
+                    fd = bpf_ringbuf_create(max_entries=RB_SIZE_BYTES, map_name=map_name)
                     bpf_maps[map_name] = fd
                 else:
                     fd = bpf_maps[map_name]
@@ -268,8 +282,10 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> tuple[bytes, dict]:
                     logging.info(f"section '{__section_name}' size={len(section)}")
                     fd = bpf_make_single_elem_map(init=section, map_name=map_name)
                     logging.info(f"section '{__section_name}': BPF map '{map_name}' created. For debug use 'sudo bpftool map dump name {map_name}'")
+                    if True:
+                        # XXX
+                        bpf_map_freeze(map_fd=fd)
                     bpf_maps[map_name] = fd
-                    time.sleep(99999)
                 else:
                     logging.debug(f"skipping BPF map creation for section {__section_name} (reason: already there)")
                     fd = bpf_maps[map_name]
@@ -642,13 +658,15 @@ def main():
                 assert epoll_state.events == (EPOLLIN := 0x1)
                 consumer_pos = ctypes.c_uint64.from_address(mmap_1st_page_ptr).value
                 print("consumer_pos=", consumer_pos)
-                time.sleep(2)
+                # time.sleep(2)
                 hdr_addr = mmap_2nd_page_ptr + 4096 + consumer_pos
                 hdr = BpfRingbufHdr.from_address(hdr_addr)
-                assert hdr.len == ctypes.sizeof(Event)
-                new_consumer_pos = consumer_pos + ctypes.sizeof(BpfRingbufHdr) + hdr.len
+                assert hdr.len == ctypes.sizeof(Event), hdr.len
                 ev = Event.from_address(hdr_addr + ctypes.sizeof(BpfRingbufHdr))
                 print_event(ev)
+
+                # let kernel know that we consumed the event, and where it should put a new event.
+                new_consumer_pos = (consumer_pos + ctypes.sizeof(BpfRingbufHdr) + hdr.len) % RB_SIZE_BYTES
                 ctypes.c_uint64.from_address(mmap_1st_page_ptr).value = new_consumer_pos
             case 0:
                 assert False
