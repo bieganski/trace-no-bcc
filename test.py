@@ -175,7 +175,7 @@ def alloc_raw_buffer(data: bytes) -> int:
     returns raw buffer address, see '__debug_gdb' for details.
     """
     assert isinstance(data, bytes)
-    val_ptr = ctypes.create_string_buffer(init=data, size=len(data))
+    val_ptr = ctypes.create_string_buffer(init=data)
     val_ptr = ctypes.cast(val_ptr, ctypes.POINTER(ctypes.c_char))
     return ctypes.addressof(val_ptr.contents)
 
