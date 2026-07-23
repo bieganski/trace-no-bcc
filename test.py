@@ -452,7 +452,8 @@ def elf_iter_symbols(elf_bytes: bytes) -> dict[str, tuple[int, int]]:
     elf_file = ELFFile(BytesIO(elf_bytes))
     from elftools.elf.sections import SymbolTableSection
     symbol_tables = [s for s in elf_file.iter_sections() if isinstance(s, SymbolTableSection)]
-    symbol_tables = [s for s in symbol_tables if s.header["sh_type"] == "SHT_SYMTAB"]
+    if len(symbol_tables) > 1:
+        symbol_tables = [s for s in symbol_tables if s.header["sh_type"] == "SHT_SYMTAB"]
     assert len(symbol_tables) == 1
     res = dict()
     for section in symbol_tables:
@@ -650,24 +651,23 @@ def main(library: str, function: str):
     assert mmap_1st_page_ptr > 0, mmap_1st_page_ptr
     assert ctypes.c_uint64.from_address(mmap_1st_page_ptr).value == 0x0
 
-    mmap_2nd_page_ptr = libc.mmap((_addr := 0x0), (_length := 4096 * 2), (PROT_READ := 0x1), (MAP_SHARED := 0x1), rb_map_fd, (_offset := 4096))
-    # raise ValueError((ctypes.c_char * 256).from_address(mmap_2nd_page_ptr + 4096).raw)
+    mmap_2nd_page_ptr = libc.mmap((_addr := 0x0), (_length := 4096  + 2 * RB_SIZE_BYTES), (PROT_READ := 0x1), (MAP_SHARED := 0x1), rb_map_fd, (_offset := 4096))
 
     while True:
         match libc.epoll_wait(epoll_fd, ctypes.byref(epoll_state), num_events, timeout_ms):
             case 1:
                 assert epoll_state.events == (EPOLLIN := 0x1)
                 consumer_pos = ctypes.c_uint64.from_address(mmap_1st_page_ptr).value
-                print("consumer_pos=", consumer_pos)
-                # time.sleep(2)
-                hdr_addr = mmap_2nd_page_ptr + 4096 + consumer_pos
+                producer_pos = ctypes.c_uint64.from_address(mmap_2nd_page_ptr).value
+                print("consumer_pos=", consumer_pos, "producer_pos=", producer_pos)
+                hdr_addr = mmap_2nd_page_ptr + 4096 + (consumer_pos % RB_SIZE_BYTES)
                 hdr = BpfRingbufHdr.from_address(hdr_addr)
                 assert hdr.len == ctypes.sizeof(Event), hdr.len
                 ev = Event.from_address(hdr_addr + ctypes.sizeof(BpfRingbufHdr))
                 print_event(ev)
 
                 # let kernel know that we consumed the event, and where it should put a new event.
-                new_consumer_pos = (consumer_pos + ctypes.sizeof(BpfRingbufHdr) + hdr.len) % RB_SIZE_BYTES
+                new_consumer_pos = (consumer_pos + ctypes.sizeof(BpfRingbufHdr) + hdr.len)
                 ctypes.c_uint64.from_address(mmap_1st_page_ptr).value = new_consumer_pos
             case 0:
                 assert False
