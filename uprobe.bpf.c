@@ -166,8 +166,8 @@ struct event {
 
 	union {
 		struct pt_regs_x86_64  regs_x86_64;
-		struct pt_regs_riscv64 regs_riscv64;
-		struct pt_regs_armv7l  regs_armv7l;
+		// struct pt_regs_riscv64 regs_riscv64;
+		// struct pt_regs_armv7l  regs_armv7l;
 	};
 };
 

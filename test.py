@@ -24,7 +24,7 @@ import gen.bpf as bpf
 
 from inspect import getmembers
 from pprint import pformat
-x = lambda y: pformat(getmembers(y))
+# x = lambda y: pformat(getmembers(y))
 
 assert 8 == ctypes.sizeof(bpf.struct_bpf_insn)
 insn = bpf.struct_bpf_insn()
@@ -452,6 +452,7 @@ def elf_iter_symbols(elf_bytes: bytes) -> dict[str, tuple[int, int]]:
     elf_file = ELFFile(BytesIO(elf_bytes))
     from elftools.elf.sections import SymbolTableSection
     symbol_tables = [s for s in elf_file.iter_sections() if isinstance(s, SymbolTableSection)]
+    symbol_tables = [s for s in symbol_tables if s.header["sh_type"] == "SHT_SYMTAB"]
     assert len(symbol_tables) == 1
     res = dict()
     for section in symbol_tables:
@@ -561,8 +562,8 @@ class struct_pt_regs_armv7l(ctypes.Union):
 class union_pt_regs(ctypes.Union):
     _fields_ = [
         ("x86_64", struct_pt_regs_x86_64),
-        ("riscv64", struct_pt_regs_riscv64),
-        ("armv7l", struct_pt_regs_armv7l),
+        # ("riscv64", struct_pt_regs_riscv64),
+        # ("armv7l", struct_pt_regs_armv7l),
     ]
 
 # Define the struct event in Python
@@ -614,7 +615,7 @@ def print_event(event: Event):
 
     print(f"{msg_prefix} {regs_str}")
 
-def main():
+def main(library: str, function: str):
     from pathlib import Path
     bpf_elf_bytes = (Path(__file__).parent / "uprobe.bpf.o").read_bytes()
     bpf_elf_bytes = bpf_elf_adjust_to_cpu_arch(elf_bytes=bpf_elf_bytes)
@@ -625,8 +626,8 @@ def main():
     assert (rb_map_fd := bpf_maps.get("rb")) is not None
     del bpf_maps
     
-    traced_elf_path = Path("/lib/x86_64-linux-gnu/libc.so.6")
-    traced_symbol = "clock_nanosleep"
+    traced_elf_path = Path(library) # Path("/lib/x86_64-linux-gnu/libc.so.6")
+    traced_symbol = function # "clock_nanosleep"
     traced_symbol_offset = symbol_offset_and_size(elf_bytes=traced_elf_path.read_bytes(), symbol=traced_symbol)[0]
     for prog_name, (offset, size) in ebpf_programs.items():
         prog_code = code[offset:offset + size]
@@ -676,5 +677,6 @@ def main():
 if __name__ == "__main__":
     from argparse import ArgumentParser
     parser = ArgumentParser()
-    args = parser.parse_args()
-    main()
+    parser.add_argument("library")
+    parser.add_argument("function")
+    main(**vars(parser.parse_args()))
