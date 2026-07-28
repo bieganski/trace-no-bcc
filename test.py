@@ -4,10 +4,11 @@ import ctypes
 import platform
 from enum import Enum, IntEnum, auto
 import logging
-from typing import Type, Generator
+from typing import Type
 from io import BytesIO
 from pathlib import Path
 import time
+from itertools import count
 
 try:
     # XXX make IDE happy
@@ -21,10 +22,6 @@ from elftools.elf.sections import Symbol
 
 from gen.libbpf import struct_perf_event_attr, struct_epoll_event
 import gen.bpf as bpf
-
-from inspect import getmembers
-from pprint import pformat
-# x = lambda y: pformat(getmembers(y))
 
 assert 8 == ctypes.sizeof(bpf.struct_bpf_insn)
 insn = bpf.struct_bpf_insn()
@@ -616,7 +613,7 @@ def print_event(event: Event):
 
     print(f"{msg_prefix} {regs_str}")
 
-def main(library: str, function: str):
+def main(library: str, function: str, limit: int | None):
     from pathlib import Path
     bpf_elf_bytes = (Path(__file__).parent / "uprobe.bpf.o").read_bytes()
     bpf_elf_bytes = bpf_elf_adjust_to_cpu_arch(elf_bytes=bpf_elf_bytes)
@@ -655,7 +652,8 @@ def main(library: str, function: str):
 
     cur_timestamp_ns = 0
 
-    while True:
+    iterator = count() if limit is None else range(limit)
+    for _ in iterator:
         match libc.epoll_wait(epoll_fd, ctypes.byref(epoll_state), num_events, timeout_ms):
             case 1:
                 assert epoll_state.events == (EPOLLIN := 0x1)
@@ -684,4 +682,5 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("library")
     parser.add_argument("function")
+    parser.add_argument("-m", "--limit", type=int)
     main(**vars(parser.parse_args()))
