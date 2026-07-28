@@ -134,12 +134,10 @@ def syscall_bpf(op: BPF_op, attr: ctypes.Union):
     logging.info(f"bpf(op={op.name}, attr={hex(attr_addr)}, size={attr_size})")
     logging.debug(f"attr_addr={hex(attr_addr)}")
     res = syscall(ctypes.c_int(sys_bpf), ctypes.c_int(op), ctypes.c_ulong(attr_addr), ctypes.c_int(attr_size))
-    if res < 0:
-        if hasattr(attr, "log_buf"):
-            verifier_err_msg_bytes = ctypes.cast(attr.log_buf, ctypes.c_char_p).value
-            print(verifier_err_msg_bytes.decode("ascii"))
-            time.sleep(99999)
-            raise RuntimeError("verifier.c rejected bpf program")
+    if (res < 0) and hasattr(attr, "log_buf"):
+        verifier_err_msg_bytes = ctypes.cast(attr.log_buf, ctypes.c_char_p).value
+        print(verifier_err_msg_bytes.decode("ascii"))
+        raise RuntimeError("verifier.c rejected bpf program")
     syscall_bpf_check_result_for_error(op=op, res=res)
     return res
 
@@ -167,26 +165,16 @@ def symbol_name_extract__quirk(elffile: ELFFile, symbol: Symbol) -> str:
     assert symbol_name
     return symbol_name
 
-def alloc_raw_buffer(data: bytes) -> int:
+def alloc_raw_buffer(data: bytes, add_trailing_null_byte: bool) -> int:
     """
     returns raw buffer address, see '__debug_gdb' for details.
     """
     assert isinstance(data, bytes)
-    val_ptr = ctypes.create_string_buffer(init=data)
+    kwargs = dict() if add_trailing_null_byte else {"size": len(data)}
+    # create_string_buffer quirk: if 'size' is given it will allocate size bytes, else 'len(init) + 1' (injects null byte)
+    val_ptr = ctypes.create_string_buffer(init=data, **kwargs)
     val_ptr = ctypes.cast(val_ptr, ctypes.POINTER(ctypes.c_char))
     return ctypes.addressof(val_ptr.contents)
-
-def __debug_gdb(data: bytes = b"\xde\xad\xbe\xef\00\x11\x22\x33"):
-    import time
-    import os
-    addr = alloc_raw_buffer(data=data)
-    print("*", hex(addr), "=", data)
-    print(f"sudo gdb --batch -p {os.getpid()} -ex 'x/{1 + len(data) // 8}x {hex(addr)}' -ex quit")
-    time.sleep(9999)
-
-
-# bpf(BPF_MAP_CREATE, {map_type=BPF_MAP_TYPE_RINGBUF, key_size=0, value_size=0, max_entries=262144, map_flags=0, inner_map_fd=0, map_name="rb", map_ifindex=0, btf_fd=10, btf_key_type_id=0, btf_value_type_id=0, btf_vmlinux_value_type_id=0, map_extra=0}, 72) = 11
-# bpf(BPF_MAP_CREATE, {map_type=BPF_MAP_TYPE_RINGBUF, key_size=0, value_size=0, max_entries=1024  , map_flags=0, inner_map_fd=0, map_name="rb", map_ifindex=0, btf_fd=0, btf_key_type_id=0, btf_value_type_id=0, btf_vmlinux_value_type_id=0, map_extra=0}, 80) = -1 EINVAL (Invalid argument)
 
 def bpf_ringbuf_create(max_entries: int, map_name: str) -> int:
     """
@@ -222,15 +210,18 @@ def _bpf_map_create_single_elem(size: int, map_name: str) -> int:
     return fd
 
 
-def bpf_make_single_elem_map(init: bytes, map_name: str) -> int:
+def bpf_make_single_elem_map(init: bytes, map_name: str, add_trailing_null_byte: bool) -> int:
     """
     returns fd of newly created BPF map.
     """
-    fd = _bpf_map_create_single_elem(size=len(init), map_name=map_name[:15])
+    if len(map_name) > 15:
+        raise RuntimeError()
+    print("bpf_make_single_elem_map", init, map_name) # XXX
+    fd = _bpf_map_create_single_elem(size=len(init) + (1 if add_trailing_null_byte else 0), map_name=map_name)
     attr = bpf_map_update_elem__bpf_attr()
     attr.map_fd = fd
-    attr.key = alloc_raw_buffer(data=b"\x00" * 8)
-    attr.value = alloc_raw_buffer(data=init)
+    attr.key = alloc_raw_buffer(data=b"\x00" * 8, add_trailing_null_byte=False)
+    attr.value = alloc_raw_buffer(data=init, add_trailing_null_byte=add_trailing_null_byte)
     logging.info(f"BPF_MAP_UPDATE_ELEM: raw pointer k={hex(attr.key)}, v={hex(attr.value)}")
     syscall_bpf(op=BPF_op.BPF_MAP_UPDATE_ELEM, attr=attr)
     logging.info(f"BPF map '{map_name}': BPF_MAP_UPDATE_ELEM OK")
@@ -238,7 +229,29 @@ def bpf_make_single_elem_map(init: bytes, map_name: str) -> int:
 
 RB_SIZE_BYTES = 256 * 1024
 
-def relocate_section(elf_bytes: bytes, section_name: str) -> tuple[bytes, dict]:
+from dataclasses import dataclass
+
+@dataclass
+class ProbeLoc:
+    symbol_or_offset: str
+
+    @property
+    def file_offset(self):
+        raise NotImplementedError()
+        try:
+            return int(self.symbol_or_offset, 16)
+        except:
+            return 0
+
+KprobeLoc = ProbeLoc
+
+@dataclass
+class UprobeLoc(ProbeLoc):
+    executable: Path
+
+def relocate_section(elf_bytes: bytes, section_name: str, loc: KprobeLoc | UprobeLoc) -> tuple[bytes, dict]:
+    if not isinstance(loc, UprobeLoc):
+        raise NotImplementedError()
     elf = ELFFile(BytesIO(elf_bytes))
     to_relocate = bytearray(elf.get_section_by_name(section_name).data())
     logging.info(f"relocating section '{section_name}' ({len(to_relocate)} bytes)..")
@@ -277,7 +290,11 @@ def relocate_section(elf_bytes: bytes, section_name: str) -> tuple[bytes, dict]:
                     logging.info(f"creating BPF map for section {__section_name}..")
                     section : bytes = elf.get_section_by_name(__section_name).data()
                     logging.info(f"section '{__section_name}' size={len(section)}")
-                    fd = bpf_make_single_elem_map(init=section, map_name=map_name)
+                    if __section_name == ".data.library_path":
+                        section = str(loc.executable).encode("ascii")
+                    elif __section_name == ".data.symbol_name":
+                        section = str(loc.symbol_or_offset).encode("ascii")
+                    fd = bpf_make_single_elem_map(init=section, map_name=map_name, add_trailing_null_byte=False)
                     logging.info(f"section '{__section_name}': BPF map '{map_name}' created. For debug use 'sudo bpftool map dump name {map_name}'")
                     if True:
                         # XXX
@@ -400,7 +417,7 @@ def uprobe_perf_event_open(elf: Path, offset: int, is_retprobe: bool) -> int:
     attr.type = (UPROBE_EVENT_TYPE := 0x9)
     attr.size = ctypes.sizeof(struct_perf_event_attr)
     path : bytes = str(elf.expanduser().resolve().absolute()).encode("ascii")
-    ctypes_path = alloc_raw_buffer(path)
+    ctypes_path = alloc_raw_buffer(path, add_trailing_null_byte=True)
 
     assert attr.size == 0x88
     attr.uprobe_path = ctypes_path
@@ -614,13 +631,13 @@ def print_event(event: Event):
     print(f"{msg_prefix} {regs_str}")
 
 def main(library: str, function: str, limit: int | None):
-    from pathlib import Path
+    loc = UprobeLoc(executable=library, symbol_or_offset=function)
     bpf_elf_bytes = (Path(__file__).parent / "uprobe.bpf.o").read_bytes()
     bpf_elf_bytes = bpf_elf_adjust_to_cpu_arch(elf_bytes=bpf_elf_bytes)
     ebpf_programs = elf_iter_symbols(elf_bytes=bpf_elf_bytes)
 
     logging.info(f"eBPF programs found: {ebpf_programs}") # XXX - offsets from what??
-    code, bpf_maps = relocate_section(elf_bytes=bpf_elf_bytes, section_name="uprobe//")
+    code, bpf_maps = relocate_section(elf_bytes=bpf_elf_bytes, section_name="uprobe//", loc=loc)
     assert (rb_map_fd := bpf_maps.get("rb")) is not None
     del bpf_maps
     
