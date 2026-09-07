@@ -705,17 +705,17 @@ def main(loc: ProbeLoc, limit: int | None):
             case 1:
                 assert epoll_state.events == (EPOLLIN := 0x1)
                 consumer_pos = ctypes.c_uint64.from_address(mmap_1st_page_ptr).value
-                producer_pos = ctypes.c_uint64.from_address(mmap_2nd_page_ptr).value
-                print("consumer_pos=", consumer_pos, "producer_pos=", producer_pos)
+                # producer_pos = ctypes.c_uint64.from_address(mmap_2nd_page_ptr).value
                 hdr_addr = mmap_2nd_page_ptr + 4096 + (consumer_pos % RB_SIZE_BYTES)
                 hdr = BpfRingbufHdr.from_address(hdr_addr)
                 assert hdr.len == ctypes.sizeof(Event), hdr.len
                 ev = Event.from_address(hdr_addr + ctypes.sizeof(BpfRingbufHdr))
-                print_event(ev)
                 if not ev.is_ret:
-                    print(f"REENTRY after {(ev.timestamp - cur_timestamp_ns) / 1000000}ms")
+                    ms = f"{(ev.timestamp - cur_timestamp_ns) / 1000000:<9}ms "
+                    msg = f"Reentry after {ms}"
+                    print(msg, end="")
                     cur_timestamp_ns = ev.timestamp
-
+                print_event(ev)
                 # let kernel know that we consumed the event, and where it should put a new event.
                 new_consumer_pos = (consumer_pos + ctypes.sizeof(BpfRingbufHdr) + hdr.len)
                 ctypes.c_uint64.from_address(mmap_1st_page_ptr).value = new_consumer_pos
