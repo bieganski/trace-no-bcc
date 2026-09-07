@@ -236,12 +236,17 @@ class ProbeLoc:
     symbol_or_offset: str
 
     @property
-    def file_offset(self):
-        raise NotImplementedError()
+    def maybe_offset(self) -> int | None:
         try:
             return int(self.symbol_or_offset, 16)
         except:
-            return 0
+            return None
+
+    @property
+    def maybe_symbol(self) -> str | None:
+        if self.maybe_offset is not None:
+            return None
+        return self.symbol_or_offset
 
 KprobeLoc = ProbeLoc
 
@@ -250,7 +255,7 @@ class UprobeLoc(ProbeLoc):
     executable: Path
 
 def relocate_section(elf_bytes: bytes, section_name: str, loc: KprobeLoc | UprobeLoc) -> tuple[bytes, dict]:
-    if not isinstance(loc, UprobeLoc):
+    if not isinstance(loc, (UprobeLoc, KprobeLoc)):
         raise NotImplementedError()
     elf = ELFFile(BytesIO(elf_bytes))
     to_relocate = bytearray(elf.get_section_by_name(section_name).data())
@@ -291,7 +296,7 @@ def relocate_section(elf_bytes: bytes, section_name: str, loc: KprobeLoc | Uprob
                     section : bytes = elf.get_section_by_name(__section_name).data()
                     logging.info(f"section '{__section_name}' size={len(section)}")
                     if __section_name == ".data.library_path":
-                        section = str(loc.executable).encode("ascii")
+                        section = str(getattr(loc, 'executable', 'KERNEL')).encode("ascii")
                     elif __section_name == ".data.symbol_name":
                         section = str(loc.symbol_or_offset).encode("ascii")
                     fd = bpf_make_single_elem_map(init=section, map_name=map_name, add_trailing_null_byte=False)
@@ -425,6 +430,24 @@ def uprobe_perf_event_open(elf: Path, offset: int, is_retprobe: bool) -> int:
     # attr.kprobe_addr = offset
     attr.probe_offset = offset
     attr.config = (1 if is_retprobe else 0) << determine_retprobe_bit(uprobe_not_kprobe=True)
+    fd = syscall_perf_event_open(attr)
+    if fd < 0:
+        raise RuntimeError(f"perf_event_open: FAILED: {errno()}")
+    return fd
+
+def kprobe_perf_event_open(loc: KprobeLoc, is_retprobe: bool) -> int:
+    logging.info(f"kprobe_perf_event_open: {loc.symbol_or_offset}, retprobe={is_retprobe}")
+    attr = struct_perf_event_attr()
+    attr.type = (KPROBE_EVENT_TYPE := 0x8)  # cat /sys/bus/event_source/devices/kprobe/type
+    attr.size = ctypes.sizeof(struct_perf_event_attr)
+    assert attr.size == 0x88
+    if (offset := loc.maybe_offset) is not None:
+        attr.kprobe_addr = offset
+    else:
+        attr.kprobe_func = alloc_raw_buffer(str(loc.maybe_symbol).encode("ascii"), add_trailing_null_byte=True)
+        attr.probe_offset = 0x0 # offset from symbol, for now hardcoded 0
+    
+    attr.config = (1 if is_retprobe else 0) << determine_retprobe_bit(uprobe_not_kprobe=False)
     fd = syscall_perf_event_open(attr)
     if fd < 0:
         raise RuntimeError(f"perf_event_open: FAILED: {errno()}")
@@ -630,8 +653,7 @@ def print_event(event: Event):
 
     print(f"{msg_prefix} {regs_str}")
 
-def main(library: str, function: str, limit: int | None):
-    loc = UprobeLoc(executable=library, symbol_or_offset=function)
+def main(loc: ProbeLoc, limit: int | None):
     bpf_elf_bytes = (Path(__file__).parent / "uprobe.bpf.o").read_bytes()
     bpf_elf_bytes = bpf_elf_adjust_to_cpu_arch(elf_bytes=bpf_elf_bytes)
     ebpf_programs = elf_iter_symbols(elf_bytes=bpf_elf_bytes)
@@ -641,17 +663,25 @@ def main(library: str, function: str, limit: int | None):
     assert (rb_map_fd := bpf_maps.get("rb")) is not None
     del bpf_maps
     
-    traced_elf_path = Path(library) # Path("/lib/x86_64-linux-gnu/libc.so.6")
-    traced_symbol = function # "clock_nanosleep"
-    traced_symbol_offset, _ = symbol_offset_and_size(elf_bytes=traced_elf_path.read_bytes(), symbol=traced_symbol)
     for prog_name, (offset, size) in ebpf_programs.items():
         prog_code = code[offset:offset + size]
         prog_fd = bpf_prog_load(code=prog_code, prog_name=prog_name)
-        event_fd = uprobe_perf_event_open(
-            elf=traced_elf_path,
-            offset=traced_symbol_offset,
-            is_retprobe=program_is_retprobe(symbol=prog_name),
-        )
+        match loc:
+            case UprobeLoc(executable=traced_elf_path):
+                traced_symbol_offset = loc.maybe_offset if loc.maybe_offset is not None else symbol_offset_and_size(elf_bytes=traced_elf_path.read_bytes(), symbol=loc.maybe_symbol)[0]
+                event_fd = uprobe_perf_event_open(
+                    elf=traced_elf_path,
+                    offset=traced_symbol_offset,
+                    is_retprobe=program_is_retprobe(symbol=prog_name),
+                )
+            case KprobeLoc():
+                event_fd = kprobe_perf_event_open(
+                    loc=loc,
+                    is_retprobe=program_is_retprobe(symbol=prog_name)
+                )
+                # raise ValueError(event_fd)
+            case _:
+                raise RuntimeError()
         bpf_link_create(prog_fd=prog_fd, perf_event_fd=event_fd)
 
     print("$    sudo bpftool prog show")
@@ -697,7 +727,22 @@ def main(library: str, function: str, limit: int | None):
 if __name__ == "__main__":
     from argparse import ArgumentParser
     parser = ArgumentParser()
-    parser.add_argument("library")
-    parser.add_argument("function")
-    parser.add_argument("-m", "--limit", type=int)
-    main(**vars(parser.parse_args()))
+    subparsers = parser.add_subparsers(dest="kprobe_or_uprobe", required=True)
+    kprobe_parser, uprobe_parser = subparsers.add_parser('kernel'), subparsers.add_parser('user')
+    uprobe_parser.add_argument("library")
+    for _sp in (kprobe_parser, uprobe_parser):
+        _sp.add_argument("-m", "--limit", type=int)
+        _sp.add_argument("symbol_or_offset", help="symbol name or hex file offset to set breakpoint at (e.g. 'vfs_read' or 'ffffffffa72e17f0' or '0xffffffffa72e17f0'")
+
+    _args = parser.parse_args()
+    if _args.kprobe_or_uprobe == "user":
+        _loc = UprobeLoc(executable=Path(_args.library), symbol_or_offset=_args.symbol_or_offset)
+    elif _args.kprobe_or_uprobe == "kernel":
+        try:
+            _loc_parsed = hex ( int(_args.symbol_or_offset, 16) ) # add '0x' prefix if it's not there
+        except:
+            _loc_parsed = _args.symbol_or_offset
+        _loc = KprobeLoc(symbol_or_offset=_loc_parsed)
+    else:
+        assert False
+    main(limit=_args.limit, loc=_loc)
