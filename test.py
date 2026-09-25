@@ -707,8 +707,11 @@ def main(loc: ProbeLoc, limit: int | None):
                 consumer_pos = ctypes.c_uint64.from_address(mmap_1st_page_ptr).value
                 # producer_pos = ctypes.c_uint64.from_address(mmap_2nd_page_ptr).value
                 hdr_addr = mmap_2nd_page_ptr + 4096 + (consumer_pos % RB_SIZE_BYTES)
-                hdr = BpfRingbufHdr.from_address(hdr_addr)
-                assert hdr.len == ctypes.sizeof(Event), hdr.len
+                def from_address_make_copy(_type: type, addr: int):
+                    # 'ctypes.Structure.from_address' but makes a copy
+                    return _type.from_buffer_copy(ctypes.string_at(addr, ctypes.sizeof(_type)))
+                hdr = from_address_make_copy(_type=BpfRingbufHdr, addr=hdr_addr)  # ringbuf is constantly being overwritten - make a copy
+                assert hdr.len == ctypes.sizeof(Event), (hdr.len, ctypes.sizeof(Event))
                 ev = Event.from_address(hdr_addr + ctypes.sizeof(BpfRingbufHdr))
                 if not ev.is_ret:
                     ms = f"{(ev.timestamp - cur_timestamp_ns) / 1000000:<9}ms "
